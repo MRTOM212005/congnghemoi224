@@ -258,7 +258,14 @@
         }
 
         async function startCamera() {
-            if (!cvReady) return;
+            if (!cvReady) {
+                alert("Vui lòng đợi hệ thống tải xong AI Core (1-3 giây) rồi mới bấm nhé!");
+                return;
+            }
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                alert("Lỗi: Trình duyệt bị chặn Camera! Vui lòng copy đường link mở bằng trình duyệt Safari (iPhone) hoặc Chrome, và đảm bảo link bắt đầu bằng https://");
+                return;
+            }
             try {
                 videoStream = await navigator.mediaDevices.getUserMedia({ 
                     video: { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 480 } } 
