@@ -211,20 +211,24 @@
         let scanning = false;
         let videoStream = null;
 
-        function onOpenCvReady() {
-            cvReady = true;
-            let statusEl = document.getElementById('ai-status');
-            if(statusEl) {
-                statusEl.innerText = "AI CORE ĐÃ SẴN SÀNG - BẤM MỞ CAMERA!";
-                statusEl.style.color = "#10b981";
+        function checkOpenCvReady() {
+            if (typeof cv !== 'undefined' && cv.Mat) {
+                cvReady = true;
+                let statusEl = document.getElementById('ai-status');
+                if(statusEl) {
+                    statusEl.innerText = "AI CORE ĐÃ SẴN SÀNG - BẤM MỞ CAMERA!";
+                    statusEl.style.color = "#10b981";
+                }
+                let btnCam = document.getElementById('btn-cam');
+                if(btnCam) btnCam.classList.remove('disabled');
+                if(typeof initGrid === 'function') initGrid();
+            } else {
+                setTimeout(checkOpenCvReady, 500);
             }
-            let btnCam = document.getElementById('btn-cam');
-            if(btnCam) btnCam.classList.remove('disabled');
-            if(typeof initGrid === 'function') initGrid();
         }
     </script>
     
-    <script async src="https://cdn.jsdelivr.net/gh/wallat/compiled-opencv/opencv.js" onload="onOpenCvReady()" type="text/javascript"></script>
+    <script async src="https://cdn.jsdelivr.net/gh/wallat/compiled-opencv/opencv.js" onload="checkOpenCvReady()" type="text/javascript"></script>
 
     <script>
         AOS.init({ duration: 1000, once: true });
