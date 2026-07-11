@@ -204,14 +204,8 @@
 
     <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-    <script async src="https://cdn.jsdelivr.net/gh/wallat/compiled-opencv/opencv.js" onload="onOpenCvReady()" type="text/javascript"></script>
 
     <script>
-        AOS.init({ duration: 1000, once: true });
-        particlesJS("particles-js", {
-            "particles": { "number": { "value": 50 }, "color": { "value": "#06b6d4" }, "opacity": { "value": 0.2 }, "size": { "value": 2 }, "line_linked": { "enable": true, "distance": 150, "color": "#06b6d4", "opacity": 0.1 } }
-        });
-
         let cvReady = false;
         let history = [];
         let scanning = false;
@@ -219,13 +213,24 @@
 
         function onOpenCvReady() {
             cvReady = true;
-            document.getElementById('ai-status').innerText = "AI CORE ĐÃ SẴN SÀNG - BẤM MỞ CAMERA!";
-            document.getElementById('ai-status').style.color = "#10b981";
-            
+            let statusEl = document.getElementById('ai-status');
+            if(statusEl) {
+                statusEl.innerText = "AI CORE ĐÃ SẴN SÀNG - BẤM MỞ CAMERA!";
+                statusEl.style.color = "#10b981";
+            }
             let btnCam = document.getElementById('btn-cam');
-            btnCam.classList.remove('disabled');
-            initGrid();
+            if(btnCam) btnCam.classList.remove('disabled');
+            if(typeof initGrid === 'function') initGrid();
         }
+    </script>
+    
+    <script async src="https://cdn.jsdelivr.net/gh/wallat/compiled-opencv/opencv.js" onload="onOpenCvReady()" type="text/javascript"></script>
+
+    <script>
+        AOS.init({ duration: 1000, once: true });
+        particlesJS("particles-js", {
+            "particles": { "number": { "value": 50 }, "color": { "value": "#06b6d4" }, "opacity": { "value": 0.2 }, "size": { "value": 2 }, "line_linked": { "enable": true, "distance": 150, "color": "#06b6d4", "opacity": 0.1 } }
+        });
 
         function initGrid() {
             const grid = document.getElementById('grid');
