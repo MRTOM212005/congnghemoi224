@@ -194,12 +194,14 @@
 
         <div class="controls" data-aos="fade-up" data-aos-delay="200">
             <button class="btn btn-cam disabled" id="btn-cam" onclick="startCamera()">
-                🔴 MỞ CAMERA QUÉT TRỰC TIẾP
+                💻 KẾT NỐI CỬA SỔ BÀN CHƠI
             </button>
-            <button class="btn btn-stop" id="btn-stop" onclick="stopCamera()">
-                ⏹ DỪNG QUÉT CAMERA
+            <button class="btn btn-cam" id="btn-scan" onclick="captureAndScan()" style="display:none; background: linear-gradient(135deg, #10b981 0%, #059669 100%); margin-top: 10px;">
+                🎯 BẤM ĐỂ QUÉT TỶ LỆ (SCAN)
             </button>
-            <p style="text-align: center; font-size: 10px; color: #6b7280; margin-top: 5px;">Yêu cầu: Website phải được chạy trên link HTTPS để mở Camera.</p>
+            <button class="btn btn-stop" id="btn-stop" onclick="stopCamera()" style="margin-top: 10px;">
+                ⏹ NGẮT KẾT NỐI
+            </button>
             <canvas id="cvCanvas" style="display:none;"></canvas>
         </div>
     </div>
@@ -269,26 +271,27 @@
         }
 
         async function startCamera() {
-            if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-                alert("Lỗi: Trình duyệt bị chặn Camera! Vui lòng copy đường link mở bằng trình duyệt Safari (iPhone) hoặc Chrome, và đảm bảo link bắt đầu bằng https://");
+            if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+                alert("Lỗi: Trình duyệt không hỗ trợ Chia sẻ màn hình (Screen Share)! Tính năng này chỉ hoạt động trên máy tính (PC).");
                 return;
             }
             try {
-                videoStream = await navigator.mediaDevices.getUserMedia({ 
-                    video: { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 480 } } 
+                videoStream = await navigator.mediaDevices.getDisplayMedia({ 
+                    video: { cursor: "always" },
+                    audio: false
                 });
                 let video = document.getElementById('videoElement');
                 video.srcObject = videoStream;
                 document.getElementById('videoContainer').style.display = 'block';
                 document.getElementById('btn-cam').style.display = 'none';
+                document.getElementById('btn-scan').style.display = 'block';
                 document.getElementById('btn-stop').style.display = 'block';
-                document.getElementById('ai-status').innerText = "ĐANG QUÉT LIVE MÀN HÌNH BÀN CHƠI...";
+                document.getElementById('ai-status').innerText = "ĐÃ KẾT NỐI. HÃY CHỈNH KHUNG VÀ BẤM QUÉT!";
                 document.getElementById('ai-status').style.color = "#3b82f6";
                 
                 scanning = true;
-                scanLoop();
             } catch (err) {
-                alert("Lỗi mở Camera: " + err.message + "\n(Hãy đảm bảo bạn đang dùng link HTTPS hoặc localhost)");
+                alert("Lỗi kết nối màn hình: " + err.message);
             }
         }
 
@@ -299,13 +302,14 @@
             }
             document.getElementById('videoContainer').style.display = 'none';
             document.getElementById('btn-cam').style.display = 'block';
+            document.getElementById('btn-scan').style.display = 'none';
             document.getElementById('btn-stop').style.display = 'none';
-            document.getElementById('ai-status').innerText = "ĐÃ DỪNG CAMERA.";
+            document.getElementById('ai-status').innerText = "ĐÃ NGẮT KẾT NỐI.";
             document.getElementById('ai-status').style.color = "#6b7280";
         }
 
-        function scanLoop() {
-            if (!scanning) return;
+        function captureAndScan() {
+            if (!scanning || !cvReady) return;
             
             let video = document.getElementById('videoElement');
             let canvas = document.getElementById('cvCanvas');
@@ -320,16 +324,13 @@
                 let cropX = (vw - cropW) / 2;
                 let cropY = (vh - cropH) / 2;
 
-                // Scale up the cropped area for better OpenCV detection
-                canvas.width = 400;
-                canvas.height = (cropH / cropW) * 400;
+                // Scale up the cropped area for exact OpenCV detection
+                canvas.width = 640;
+                canvas.height = (cropH / cropW) * 640;
                 
                 ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, canvas.width, canvas.height);
                 processLiveFrame(canvas);
             }
-            
-            // 2 frames per second to save battery
-            setTimeout(scanLoop, 500);
         }
 
         function processLiveFrame(canvas) {
@@ -344,12 +345,12 @@
                 cv.cvtColor(hsv, hsv, cv.COLOR_RGB2HSV);
 
                 // Red
-                lower_red1 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [0, 40, 50, 0]);
-                upper_red1 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [15, 255, 255, 0]);
+                lower_red1 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [0, 100, 100, 0]);
+                upper_red1 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [10, 255, 255, 0]);
                 mask_r1 = new cv.Mat();
                 cv.inRange(hsv, lower_red1, upper_red1, mask_r1);
 
-                lower_red2 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [160, 40, 50, 0]);
+                lower_red2 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [170, 100, 100, 0]);
                 upper_red2 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [180, 255, 255, 0]);
                 mask_r2 = new cv.Mat();
                 cv.inRange(hsv, lower_red2, upper_red2, mask_r2);
@@ -358,14 +359,14 @@
                 cv.add(mask_r1, mask_r2, mask_r);
 
                 // Blue
-                lower_blue = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [90, 40, 50, 0]);
+                lower_blue = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [90, 100, 100, 0]);
                 upper_blue = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [130, 255, 255, 0]);
                 mask_b = new cv.Mat();
                 cv.inRange(hsv, lower_blue, upper_blue, mask_b);
 
                 // Green
-                lower_green = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [35, 40, 50, 0]);
-                upper_green = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [85, 255, 255, 0]);
+                lower_green = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [40, 100, 100, 0]);
+                upper_green = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [80, 255, 255, 0]);
                 mask_g = new cv.Mat();
                 cv.inRange(hsv, lower_green, upper_green, mask_g);
 
@@ -377,7 +378,7 @@
                     for (let i = 0; i < contours.size(); i++) {
                         let cnt = contours.get(i);
                         let area = cv.contourArea(cnt);
-                        if (area > 2 && area < src.rows * src.cols * 0.1) {
+                        if (area > 10 && area < src.rows * src.cols * 0.1) {
                             let rect = cv.boundingRect(cnt);
                             dots.push({ x: rect.x, y: rect.y, color: colorLabel, w: rect.width });
                         }
