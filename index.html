@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>VIP Baccarat Live Scanner</title>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0c0c0e;
+            --panel-bg: rgba(18, 18, 22, 0.95);
+            --primary: #06b6d4;
+            --banker: #ef4444;
+            --player: #3b82f6;
+            --tie: #10b981;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background-color: var(--bg-color);
+            color: white;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 10px;
+            overflow-x: hidden;
+        }
+        #particles-js { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; }
+        .wrapper {
+            width: 100%;
+            max-width: 400px;
+            z-index: 1;
+            margin-top: 10px;
+        }
+        .header-title {
+            text-align: center;
+            color: #9ca3af;
+            font-size: 12px;
+            letter-spacing: 3px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+        
+        /* Video Container */
+        .video-container {
+            width: 100%;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            overflow: hidden;
+            border: 2px solid #374151;
+            display: none;
+            position: relative;
+            background: #000;
+        }
+        #videoElement {
+            width: 100%;
+            display: block;
+        }
+        .scan-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: rgba(6, 182, 212, 0.8);
+            box-shadow: 0 0 10px #06b6d4;
+            animation: scan 2s linear infinite;
+        }
+        @keyframes scan { 0% { top: 0; } 100% { top: 100%; } }
+
+        .ai-panel {
+            background: var(--panel-bg);
+            border: 1px solid #1f2937;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            backdrop-filter: blur(10px);
+        }
+        .ai-card {
+            background: rgba(0,0,0,0.3);
+            border-radius: 6px;
+            padding: 10px;
+            text-align: center;
+            border: 1px solid #374151;
+        }
+        .ai-title { font-size: 10px; color: #6b7280; letter-spacing: 1px; margin-bottom: 5px; }
+        .ai-perc { font-family: 'Consolas', monospace; font-size: 18px; font-weight: bold; }
+        .perc-banker { color: var(--banker); background: rgba(239, 68, 68, 0.1); padding: 5px; border-radius: 4px; }
+        .perc-player { color: var(--player); background: rgba(59, 130, 246, 0.1); padding: 5px; border-radius: 4px; }
+        
+        .roadmap-container {
+            background: var(--panel-bg);
+            border: 1px solid #1f2937;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 20px;
+            overflow-x: auto;
+        }
+        .roadmap-title { font-size: 10px; color: #6b7280; letter-spacing: 1px; margin-bottom: 10px; text-align: center;}
+        .grid {
+            display: grid;
+            grid-template-rows: repeat(6, 18px);
+            grid-auto-columns: 18px;
+            grid-auto-flow: column;
+            gap: 2px;
+        }
+        .cell {
+            width: 18px;
+            height: 18px;
+            background: #1f2937;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+            color: transparent;
+        }
+        .c-banker { background: var(--banker); color: white; }
+        .c-player { background: var(--player); color: white; }
+        .c-tie { background: var(--tie); color: white; }
+
+        .btn {
+            background: transparent;
+            color: white;
+            border: 1px solid #374151;
+            padding: 12px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            font-size: 13px;
+            letter-spacing: 1px;
+            display: block;
+            width: 100%;
+            text-align: center;
+            margin-bottom: 10px;
+            transition: 0.2s;
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn-cam { background: linear-gradient(135deg, #10b981 0%, #059669 100%); border: none; }
+        .btn-cam.disabled { background: #374151; cursor: not-allowed; opacity: 0.7; }
+        .btn-stop { background: #ef4444; border: none; display: none; }
+        
+        #ai-status {
+            font-size: 11px;
+            color: #06b6d4;
+            margin-top: 5px;
+            font-family: monospace;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+    </style>
+</head>
+<body>
+    <div id="particles-js"></div>
+
+    <div class="wrapper">
+        <h1 class="header-title" data-aos="fade-down">SYSTEM: VIP LIVE SCANNER</h1>
+
+        <div class="video-container" id="videoContainer" data-aos="fade-down">
+            <video id="videoElement" autoplay playsinline></video>
+            <div class="scan-line"></div>
+        </div>
+
+        <div class="ai-panel" data-aos="fade-up">
+            <div class="ai-card" style="grid-column: 1 / -1; border-top: 2px solid var(--primary); margin-bottom: 5px;">
+                <div class="ai-title">CHỈ ĐỊNH ĐẶT CƯỢC HỆ THỐNG</div>
+                <div class="ai-perc" id="ai-recommendation" style="font-size: 26px; font-weight: 900; margin: 10px 0; color: #eab308; text-shadow: 0 0 15px rgba(234, 179, 8, 0.4);">CHỜ ẢNH BÀN CHƠI...</div>
+                <div id="ai-pattern" style="font-family: monospace; font-size: 11px; color: #10b981; font-weight: bold; margin-bottom: 5px;">DẠNG CẦU: CHƯA XÁC ĐỊNH</div>
+                <div id="ai-status">ĐANG TẢI AI CORE (VUI LÒNG ĐỢI)...</div>
+            </div>
+            <div class="ai-card">
+                <div class="ai-title">TỶ LỆ BANKER</div>
+                <div class="ai-perc perc-banker" id="ai-banker">50%</div>
+            </div>
+            <div class="ai-card">
+                <div class="ai-title">TỶ LỆ PLAYER</div>
+                <div class="ai-perc perc-player" id="ai-player">50%</div>
+            </div>
+        </div>
+
+        <div class="roadmap-container" data-aos="fade-up" data-aos-delay="100">
+            <div class="roadmap-title">LIVE BEAD PLATE (LIÊN TỤC)</div>
+            <div class="grid" id="grid"></div>
+        </div>
+
+        <div class="controls" data-aos="fade-up" data-aos-delay="200">
+            <button class="btn btn-cam disabled" id="btn-cam" onclick="startCamera()">
+                🔴 MỞ CAMERA QUÉT TRỰC TIẾP
+            </button>
+            <button class="btn btn-stop" id="btn-stop" onclick="stopCamera()">
+                ⏹ DỪNG QUÉT CAMERA
+            </button>
+            <p style="text-align: center; font-size: 10px; color: #6b7280; margin-top: 5px;">Yêu cầu: Website phải được chạy trên link HTTPS để mở Camera.</p>
+            <canvas id="cvCanvas" style="display:none;"></canvas>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/particles.js/2.0.0/particles.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <script async src="https://docs.opencv.org/4.8.0/opencv.js" onload="onOpenCvReady()" type="text/javascript"></script>
+
+    <script>
+        AOS.init({ duration: 1000, once: true });
+        particlesJS("particles-js", {
+            "particles": { "number": { "value": 50 }, "color": { "value": "#06b6d4" }, "opacity": { "value": 0.2 }, "size": { "value": 2 }, "line_linked": { "enable": true, "distance": 150, "color": "#06b6d4", "opacity": 0.1 } }
+        });
+
+        let cvReady = false;
+        let history = [];
+        let scanning = false;
+        let videoStream = null;
+
+        function onOpenCvReady() {
+            cvReady = true;
+            document.getElementById('ai-status').innerText = "AI CORE ĐÃ SẴN SÀNG - BẤM MỞ CAMERA!";
+            document.getElementById('ai-status').style.color = "#10b981";
+            
+            let btnCam = document.getElementById('btn-cam');
+            btnCam.classList.remove('disabled');
+            initGrid();
+        }
+
+        function initGrid() {
+            const grid = document.getElementById('grid');
+            grid.innerHTML = '';
+            for(let c=0; c<20; c++) {
+                for(let r=0; r<6; r++) {
+                    const d = document.createElement('div');
+                    d.className = 'cell';
+                    d.id = `c-${c}-${r}`;
+                    grid.appendChild(d);
+                }
+            }
+        }
+
+        function renderGrid() {
+            initGrid();
+            let r=0, c=0;
+            for(let i=0; i<history.length; i++) {
+                const el = document.getElementById(`c-${c}-${r}`);
+                if(el) {
+                    const v = history[i];
+                    if(v==='B') { el.classList.add('c-banker'); el.innerText='B'; }
+                    if(v==='P') { el.classList.add('c-player'); el.innerText='P'; }
+                    if(v==='T') { el.classList.add('c-tie'); el.innerText='T'; }
+                }
+                r++;
+                if(r>=6) { r=0; c++; }
+            }
+            updateAI();
+        }
+
+        async function startCamera() {
+            if (!cvReady) return;
+            try {
+                videoStream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "environment", width: { ideal: 640 }, height: { ideal: 480 } } 
+                });
+                let video = document.getElementById('videoElement');
+                video.srcObject = videoStream;
+                document.getElementById('videoContainer').style.display = 'block';
+                document.getElementById('btn-cam').style.display = 'none';
+                document.getElementById('btn-stop').style.display = 'block';
+                document.getElementById('ai-status').innerText = "ĐANG QUÉT LIVE MÀN HÌNH BÀN CHƠI...";
+                document.getElementById('ai-status').style.color = "#3b82f6";
+                
+                scanning = true;
+                scanLoop();
+            } catch (err) {
+                alert("Lỗi mở Camera: " + err.message + "\n(Hãy đảm bảo bạn đang dùng link HTTPS hoặc localhost)");
+            }
+        }
+
+        function stopCamera() {
+            scanning = false;
+            if(videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+            }
+            document.getElementById('videoContainer').style.display = 'none';
+            document.getElementById('btn-cam').style.display = 'block';
+            document.getElementById('btn-stop').style.display = 'none';
+            document.getElementById('ai-status').innerText = "ĐÃ DỪNG CAMERA.";
+            document.getElementById('ai-status').style.color = "#6b7280";
+        }
+
+        function scanLoop() {
+            if (!scanning) return;
+            
+            let video = document.getElementById('videoElement');
+            let canvas = document.getElementById('cvCanvas');
+            
+            if (video.videoWidth > 0 && video.videoHeight > 0) {
+                let ctx = canvas.getContext('2d');
+                // Downscale for performance
+                let targetW = 320;
+                let targetH = (video.videoHeight / video.videoWidth) * targetW;
+                canvas.width = targetW;
+                canvas.height = targetH;
+                
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                processLiveFrame(canvas);
+            }
+            
+            // 2 frames per second to save battery
+            setTimeout(scanLoop, 500);
+        }
+
+        function processLiveFrame(canvas) {
+            let src, hsv, mask_r1, mask_r2, mask_r, mask_b, mask_g;
+            let lower_red1, upper_red1, lower_red2, upper_red2, lower_blue, upper_blue, lower_green, upper_green;
+            
+            try {
+                src = cv.imread(canvas);
+                hsv = new cv.Mat();
+                cv.cvtColor(src, hsv, cv.COLOR_RGBA2RGB);
+                cv.cvtColor(hsv, hsv, cv.COLOR_RGB2HSV);
+
+                // Red
+                lower_red1 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [0, 100, 100, 0]);
+                upper_red1 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [10, 255, 255, 0]);
+                mask_r1 = new cv.Mat();
+                cv.inRange(hsv, lower_red1, upper_red1, mask_r1);
+
+                lower_red2 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [170, 100, 100, 0]);
+                upper_red2 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [180, 255, 255, 0]);
+                mask_r2 = new cv.Mat();
+                cv.inRange(hsv, lower_red2, upper_red2, mask_r2);
+
+                mask_r = new cv.Mat();
+                cv.add(mask_r1, mask_r2, mask_r);
+
+                // Blue
+                lower_blue = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [90, 100, 100, 0]);
+                upper_blue = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [130, 255, 255, 0]);
+                mask_b = new cv.Mat();
+                cv.inRange(hsv, lower_blue, upper_blue, mask_b);
+
+                // Green
+                lower_green = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [40, 100, 100, 0]);
+                upper_green = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [80, 255, 255, 0]);
+                mask_g = new cv.Mat();
+                cv.inRange(hsv, lower_green, upper_green, mask_g);
+
+                function findDots(mask, colorLabel) {
+                    let contours = new cv.MatVector();
+                    let hierarchy = new cv.Mat();
+                    cv.findContours(mask, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+                    let dots = [];
+                    for (let i = 0; i < contours.size(); i++) {
+                        let cnt = contours.get(i);
+                        let area = cv.contourArea(cnt);
+                        if (area > 10 && area < src.rows * src.cols * 0.1) {
+                            let rect = cv.boundingRect(cnt);
+                            dots.push({ x: rect.x, y: rect.y, color: colorLabel, w: rect.width });
+                        }
+                    }
+                    contours.delete(); hierarchy.delete();
+                    return dots;
+                }
+
+                let allDots = [];
+                allDots = allDots.concat(findDots(mask_r, 'B'));
+                allDots = allDots.concat(findDots(mask_b, 'P'));
+                allDots = allDots.concat(findDots(mask_g, 'T'));
+
+                // Clean up Mats early
+                src.delete(); hsv.delete(); mask_r1.delete(); mask_r2.delete(); mask_r.delete();
+                mask_b.delete(); mask_g.delete(); lower_red1.delete(); upper_red1.delete();
+                lower_red2.delete(); upper_red2.delete(); lower_blue.delete(); upper_blue.delete();
+                lower_green.delete(); upper_green.delete();
+
+                if(allDots.length > 0) {
+                    allDots.sort((a, b) => a.x - b.x);
+
+                    let columns = [];
+                    let currCol = [allDots[0]];
+                    let refW = allDots[0].w;
+                    
+                    for(let i=1; i<allDots.length; i++) {
+                        let d = allDots[i];
+                        if (d.x - currCol[currCol.length-1].x < refW * 0.8) {
+                            currCol.push(d);
+                        } else {
+                            columns.push(currCol);
+                            currCol = [d];
+                        }
+                    }
+                    columns.push(currCol);
+
+                    let beadPlateCols = columns.slice(0, 10);
+                    let finalHistory = [];
+                    for(let col of beadPlateCols) {
+                        col.sort((a, b) => a.y - b.y);
+                        for(let dot of col) {
+                            finalHistory.push(dot.color);
+                        }
+                    }
+
+                    // Only update if history length changed (to prevent flickering)
+                    // Realistically we should do deep array comparison, but length is ok for now.
+                    if(finalHistory.length > 0 && finalHistory.length !== history.length) {
+                        history = finalHistory;
+                        renderGrid();
+                    }
+                }
+            } catch (err) {
+                // Ignore silent live frame errors to not disrupt loop
+                // Must ensure any created Mats are deleted on error to avoid memory leak
+                if(src && !src.isDeleted()) src.delete();
+                if(hsv && !hsv.isDeleted()) hsv.delete();
+                if(mask_r1 && !mask_r1.isDeleted()) mask_r1.delete();
+                if(mask_r2 && !mask_r2.isDeleted()) mask_r2.delete();
+                if(mask_r && !mask_r.isDeleted()) mask_r.delete();
+                if(mask_b && !mask_b.isDeleted()) mask_b.delete();
+                if(mask_g && !mask_g.isDeleted()) mask_g.delete();
+                if(lower_red1 && !lower_red1.isDeleted()) lower_red1.delete();
+                if(upper_red1 && !upper_red1.isDeleted()) upper_red1.delete();
+                if(lower_red2 && !lower_red2.isDeleted()) lower_red2.delete();
+                if(upper_red2 && !upper_red2.isDeleted()) upper_red2.delete();
+                if(lower_blue && !lower_blue.isDeleted()) lower_blue.delete();
+                if(upper_blue && !upper_blue.isDeleted()) upper_blue.delete();
+                if(lower_green && !lower_green.isDeleted()) lower_green.delete();
+                if(upper_green && !upper_green.isDeleted()) upper_green.delete();
+            }
+        }
+
+        // --- BACCARAT AI LOGIC (Translated from Python) ---
+        function calcDerived(hist) {
+            if (!hist || hist.length === 0) return [[], [], []];
+            let colsLen = [];
+            let bigRoadElements = [];
+            let currentColor = hist[0];
+            let currentLen = 1;
+            let cIdx = 0;
+            bigRoadElements.push({c: cIdx, r: 1});
+
+            for(let i=1; i<hist.length; i++) {
+                let res = hist[i];
+                if (res === currentColor) {
+                    currentLen++;
+                } else {
+                    colsLen.push(currentLen);
+                    currentColor = res;
+                    currentLen = 1;
+                    cIdx++;
+                }
+                bigRoadElements.push({c: cIdx, r: currentLen});
+            }
+            colsLen.push(currentLen);
+
+            let bigEye = [], small = [], cockroach = [];
+            let tempCols = [];
+            let currC = -1;
+
+            for (let el of bigRoadElements) {
+                let c = el.c;
+                let r = el.r;
+                if (c > currC) {
+                    tempCols.push(1);
+                    currC = c;
+                } else {
+                    tempCols[tempCols.length - 1]++;
+                }
+
+                if (c >= 1 && !(c === 1 && r === 1)) {
+                    let color = 'R';
+                    if (r === 1) { color = (tempCols[c-1] === tempCols[c-2]) ? 'R' : 'B'; }
+                    else {
+                        let refLen = (c-1 >= 0) ? tempCols[c-1] : 0;
+                        color = (refLen >= r) ? 'R' : ((refLen === r - 1) ? 'B' : 'R');
+                    }
+                    bigEye.push(color);
+                }
+                if (c >= 2 && !(c === 2 && r === 1)) {
+                    let color = 'R';
+                    if (r === 1) { color = (tempCols[c-1] === tempCols[c-3]) ? 'R' : 'B'; }
+                    else {
+                        let refLen = (c-2 >= 0) ? tempCols[c-2] : 0;
+                        color = (refLen >= r) ? 'R' : ((refLen === r - 1) ? 'B' : 'R');
+                    }
+                    small.push(color);
+                }
+                if (c >= 3 && !(c === 3 && r === 1)) {
+                    let color = 'R';
+                    if (r === 1) { color = (tempCols[c-1] === tempCols[c-4]) ? 'R' : 'B'; }
+                    else {
+                        let refLen = (c-3 >= 0) ? tempCols[c-3] : 0;
+                        color = (refLen >= r) ? 'R' : ((refLen === r - 1) ? 'B' : 'R');
+                    }
+                    cockroach.push(color);
+                }
+            }
+            return [bigEye, small, cockroach];
+        }
+
+        function updateAI() {
+            const recent = history.filter(x => x === 'B' || x === 'P');
+            if (recent.length < 5) {
+                document.getElementById('ai-recommendation').innerText = "CHỜ DỮ LIỆU CẦU...";
+                document.getElementById('ai-recommendation').style.color = "#eab308";
+                document.getElementById('ai-recommendation').style.textShadow = "none";
+                document.getElementById('ai-pattern').innerText = "DẠNG CẦU: KHÔNG RÕ";
+                document.getElementById('ai-banker').innerText = '50%';
+                document.getElementById('ai-player').innerText = '50%';
+                return;
+            }
+
+            const cols = [];
+            let currentColor = recent[0];
+            let currentLen = 1;
+            for (let i = 1; i < recent.length; i++) {
+                if (recent[i] === currentColor) {
+                    currentLen++;
+                } else {
+                    cols.push({ color: currentColor, len: currentLen });
+                    currentColor = recent[i];
+                    currentLen = 1;
+                }
+            }
+            cols.push({ color: currentColor, len: currentLen });
+
+            const lastColor = cols[cols.length - 1].color;
+            const L1 = cols[cols.length - 1].len;
+            
+            const colLens = cols.map(c => c.len).reverse();
+            const L2 = colLens[1] || 0;
+            const L3 = colLens[2] || 0;
+            const L4 = colLens[3] || 0;
+
+            let derB = calcDerived([...recent, 'B']);
+            let askB = derB.map(arr => arr.length > 0 ? arr[arr.length - 1] : '');
+            let redsB = askB.filter(x => x === 'R').length;
+
+            let derP = calcDerived([...recent, 'P']);
+            let askP = derP.map(arr => arr.length > 0 ? arr[arr.length - 1] : '');
+            let redsP = askP.filter(x => x === 'R').length;
+
+            let brBet = null;
+            let brConf = 0;
+            let brPattern = "";
+
+            if (L1 >= 3) {
+                brBet = lastColor;
+                brConf = 85;
+                brPattern = `BỆT ${L1} NHỊP`;
+            } else if (L1 === 1 && L2 === 1 && L3 === 1 && L4 === 1) {
+                brBet = lastColor === 'P' ? 'B' : 'P';
+                brConf = 80;
+                brPattern = "PING PONG 1-1";
+            } else if (L3 === 2 && L2 === 2) {
+                if (L1 === 1) {
+                    brBet = lastColor;
+                    brConf = 75;
+                    brPattern = "NUÔI 2-2";
+                } else if (L1 === 2) {
+                    brBet = lastColor === 'P' ? 'B' : 'P';
+                    brConf = 75;
+                    brPattern = "BẺ 2-2";
+                }
+            } else if (colLens.length > 3 && Math.max(...colLens.slice(1, 5)) <= 2) {
+                if (L1 === 2) {
+                    brBet = lastColor === 'P' ? 'B' : 'P';
+                    brConf = 70;
+                    brPattern = "GÃY TAY 2";
+                }
+            }
+
+            let finalBet = 'B';
+            let finalConf = 50;
+            let patternStr = "CẦU LOẠN / BIẾN ĐỘNG";
+
+            if (brBet) {
+                let agreeReds = brBet === 'B' ? redsB : redsP;
+                let opposeReds = brBet === 'B' ? redsP : redsB;
+
+                if (agreeReds >= 2) {
+                    finalBet = brBet;
+                    finalConf = Math.min(98, brConf + agreeReds * 5);
+                    patternStr = `CẦU CHÍNH: ${brPattern} + THUẬN 3 CẦU PHỤ`;
+                } else if (opposeReds >= 2) {
+                    finalBet = brBet;
+                    finalConf = Math.max(55, brConf - opposeReds * 10);
+                    patternStr = `XUNG ĐỘT: ${brPattern} (CẨN THẬN)`;
+                } else {
+                    finalBet = brBet;
+                    finalConf = brConf;
+                    patternStr = `CẦU CHÍNH: ${brPattern}`;
+                }
+            } else {
+                if (redsB >= 2 && redsB > redsP) {
+                    finalBet = 'B';
+                    finalConf = 60 + redsB * 8;
+                    patternStr = "CẦU CHÍNH LOẠN - ĐÁNH THEO 3 CẦU PHỤ";
+                } else if (redsP >= 2 && redsP > redsB) {
+                    finalBet = 'P';
+                    finalConf = 60 + redsP * 8;
+                    patternStr = "CẦU CHÍNH LOẠN - ĐÁNH THEO 3 CẦU PHỤ";
+                } else {
+                    finalBet = redsB >= redsP ? 'B' : 'P';
+                    finalConf = 55;
+                }
+            }
+
+            let bPerc = finalBet === 'B' ? finalConf : (100 - finalConf);
+            let pPerc = 100 - bPerc;
+            let color = finalBet === 'B' ? '#ef4444' : '#3b82f6';
+            let label = finalBet === 'B' ? 'CÁI (BANKER)' : 'CON (PLAYER)';
+
+            const recEl = document.getElementById('ai-recommendation');
+            recEl.innerText = `ĐÁNH ${label}`;
+            recEl.style.color = color;
+            recEl.style.textShadow = `0 0 15px ${color}66`;
+
+            document.getElementById('ai-pattern').innerText = patternStr;
+            document.getElementById('ai-banker').innerText = bPerc + '%';
+            document.getElementById('ai-player').innerText = pPerc + '%';
+        }
+    </script>
+</body>
+</html>
