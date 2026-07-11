@@ -194,18 +194,19 @@
             const file = event.target.files[0];
             if (!file) return;
             
-            document.getElementById('ai-status').innerText = "ĐANG PHÂN TÍCH ẢNH...";
+            document.getElementById('ai-status').innerText = "1/4: ĐANG ĐỌC TỆP ẢNH...";
             document.getElementById('ai-status').style.color = "#00f3ff";
             
             const reader = new FileReader();
             reader.onload = function(e) {
+                document.getElementById('ai-status').innerText = "2/4: ĐANG TẢI ẢNH LÊN MÀN HÌNH...";
                 const img = new Image();
                 img.onload = function() {
                     const canvas = document.getElementById('cvCanvas');
                     const ctx = canvas.getContext('2d');
                     
-                    // Limit size for performance
-                    const MAX_WIDTH = 1280;
+                    // Giảm kích thước xuống 600px để tránh lỗi tràn RAM trên điện thoại
+                    const MAX_WIDTH = 600;
                     let w = img.width;
                     let h = img.height;
                     if (w > MAX_WIDTH) {
@@ -216,10 +217,19 @@
                     canvas.height = h;
                     ctx.drawImage(img, 0, 0, w, h);
                     
-                    setTimeout(() => processLiveFrame(canvas), 100);
-                }
+                    document.getElementById('ai-status').innerText = "3/4: ĐANG CHẠY LÕI AI QUÉT HẠT...";
+                    setTimeout(() => processLiveFrame(canvas), 50);
+                };
+                img.onerror = function() {
+                    document.getElementById('ai-status').innerText = "LỖI: KHÔNG THỂ ĐỌC ĐỊNH DẠNG ẢNH NÀY!";
+                    document.getElementById('ai-status').style.color = "#ef4444";
+                };
                 img.src = e.target.result;
             }
+            reader.onerror = function() {
+                document.getElementById('ai-status').innerText = "LỖI: BỘ NHỚ TRÌNH DUYỆT TỪ CHỐI TỆP!";
+                document.getElementById('ai-status').style.color = "#ef4444";
+            };
             reader.readAsDataURL(file);
         }
 
@@ -232,6 +242,8 @@
                 hsv = new cv.Mat();
                 cv.cvtColor(src, hsv, cv.COLOR_RGBA2RGB);
                 cv.cvtColor(hsv, hsv, cv.COLOR_RGB2HSV);
+
+                document.getElementById('ai-status').innerText = "4/4: ĐANG TRÍCH XUẤT MA TRẬN MÀU...";
 
                 // Red
                 lower_red1 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [0, 40, 50, 0]);
@@ -267,7 +279,8 @@
                     for (let i = 0; i < contours.size(); i++) {
                         let cnt = contours.get(i);
                         let area = cv.contourArea(cnt);
-                        if (area > 5 && area < src.rows * src.cols * 0.1) {
+                        // Giảm diện tích tối thiểu vì ảnh đã bị thu nhỏ xuống 600px
+                        if (area > 3 && area < src.rows * src.cols * 0.1) {
                             let rect = cv.boundingRect(cnt);
                             let aspect = rect.width / rect.height;
                             if (aspect > 0.6 && aspect < 1.6) {
