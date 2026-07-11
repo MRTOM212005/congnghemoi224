@@ -267,10 +267,6 @@
         }
 
         async function startCamera() {
-            if (!cvReady) {
-                alert("Vui lòng đợi hệ thống tải xong AI Core (1-3 giây) rồi mới bấm nhé!");
-                return;
-            }
             if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
                 alert("Lỗi: Trình duyệt bị chặn Camera! Vui lòng copy đường link mở bằng trình duyệt Safari (iPhone) hoặc Chrome, và đảm bảo link bắt đầu bằng https://");
                 return;
@@ -329,6 +325,7 @@
         }
 
         function processLiveFrame(canvas) {
+            if (!cvReady) return; // Wait for OpenCV to load before processing
             let src, hsv, mask_r1, mask_r2, mask_r, mask_b, mask_g;
             let lower_red1, upper_red1, lower_red2, upper_red2, lower_blue, upper_blue, lower_green, upper_green;
             
