@@ -165,7 +165,9 @@
 
         <div class="video-container" id="videoContainer" data-aos="fade-down">
             <video id="videoElement" autoplay playsinline></video>
-            <div class="scan-line"></div>
+            <div id="reticle" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 80%; height: 35%; border: 3px dashed #06b6d4; box-shadow: 0 0 0 9999px rgba(0,0,0,0.6); z-index: 10; border-radius: 8px;"></div>
+            <div style="position: absolute; top: 15%; left: 0; width: 100%; text-align: center; color: #fff; font-weight: bold; font-size: 11px; z-index: 11; text-shadow: 0 0 5px #000;">ĐƯA BẢNG LỊCH SỬ VÀO TRONG KHUNG NÀY</div>
+            <div class="scan-line" style="z-index: 12;"></div>
         </div>
 
         <div class="ai-panel" data-aos="fade-up">
@@ -310,13 +312,19 @@
             
             if (video.videoWidth > 0 && video.videoHeight > 0) {
                 let ctx = canvas.getContext('2d');
-                // Downscale for performance
-                let targetW = 640;
-                let targetH = (video.videoHeight / video.videoWidth) * targetW;
-                canvas.width = targetW;
-                canvas.height = targetH;
+                let vw = video.videoWidth;
+                let vh = video.videoHeight;
+                // Reticle is 80% width, 35% height, centered
+                let cropW = vw * 0.8;
+                let cropH = vh * 0.35;
+                let cropX = (vw - cropW) / 2;
+                let cropY = (vh - cropH) / 2;
+
+                // Scale up the cropped area for better OpenCV detection
+                canvas.width = 400;
+                canvas.height = (cropH / cropW) * 400;
                 
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                ctx.drawImage(video, cropX, cropY, cropW, cropH, 0, 0, canvas.width, canvas.height);
                 processLiveFrame(canvas);
             }
             
