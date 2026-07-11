@@ -120,15 +120,17 @@
             cursor: pointer;
             transition: 0.3s;
             box-shadow: inset 0 0 15px rgba(0, 243, 255, 0.1);
+            position: relative;
+            overflow: hidden;
         }
         .btn-execute:active {
             transform: scale(0.98);
         }
         .btn-execute.disabled {
-            color: #4b5563;
-            border-color: #374151;
+            color: #ef4444;
+            border-color: #ef4444;
             box-shadow: none;
-            cursor: not-allowed;
+            cursor: wait;
         }
         
         #ai-status {
@@ -163,9 +165,9 @@
             </div>
             
             <input type="file" id="file-upload" accept="image/*" style="display: none;" onchange="handleImageUpload(event)">
-            <button class="btn-execute disabled" id="btn-execute" onclick="document.getElementById('file-upload').click()">ĐANG TẢI AI CORE...</button>
+            <button class="btn-execute disabled" id="btn-execute" onclick="if(cvReady) { document.getElementById('file-upload').click(); } else { alert('Hệ thống AI đang tải dữ liệu (Cần 10-20 giây tùy mạng). Vui lòng chờ nút chuyển sang màu XANH!'); }">ĐANG TẢI AI CORE...</button>
             
-            <div id="ai-status">VUI LÒNG ĐỢI...</div>
+            <div id="ai-status">ĐANG KHỞI ĐỘNG (CẦN MẠNG MẠNH)...</div>
             <canvas id="cvCanvas" style="display:none;"></canvas>
         </div>
     </div>
@@ -179,10 +181,12 @@
         function checkOpenCvReady() {
             if (typeof cv !== 'undefined' && cv.Mat) {
                 cvReady = true;
-                document.getElementById('ai-status').innerText = "HỆ THỐNG SẴN SÀNG";
+                document.getElementById('ai-status').innerText = "HỆ THỐNG ĐÃ SẴN SÀNG!";
                 document.getElementById('ai-status').style.color = "#10b981";
                 let btn = document.getElementById('btn-execute');
                 btn.classList.remove('disabled');
+                btn.style.color = "#00f3ff";
+                btn.style.borderColor = "#00f3ff";
                 btn.innerText = "EXECUTE ANALYSIS";
             } else {
                 setTimeout(checkOpenCvReady, 500);
