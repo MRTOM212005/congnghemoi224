@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VIP ADMIN DASHBOARD</title>
+    <style>
+        :root {
+            --bg: #0f172a; --panel: #1e293b; --text: #f8fafc;
+            --cyan: #00f3ff; --red: #ef4444; --green: #10b981;
+        }
+        body {
+            background-color: var(--bg); color: var(--text);
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0; padding: 20px;
+        }
+        .container { max-width: 800px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #334155; padding-bottom: 10px; margin-bottom: 20px; }
+        .title { color: var(--cyan); font-weight: bold; font-size: 24px; letter-spacing: 2px; }
+        .panel { background: var(--panel); padding: 20px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.5); }
+        h3 { margin-top: 0; color: #94a3b8; }
+        
+        input, select { 
+            background: #0f172a; border: 1px solid #334155; color: white;
+            padding: 10px; border-radius: 4px; width: 100%; margin-bottom: 15px; box-sizing: border-box;
+        }
+        .row { display: flex; gap: 10px; }
+        .row > div { flex: 1; }
+        
+        button {
+            padding: 10px 15px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer; transition: 0.2s;
+        }
+        .btn-cyan { background: rgba(0, 243, 255, 0.1); color: var(--cyan); border: 1px solid var(--cyan); }
+        .btn-cyan:hover { background: rgba(0, 243, 255, 0.2); }
+        .btn-red { background: rgba(239, 68, 68, 0.1); color: var(--red); border: 1px solid var(--red); }
+        .btn-red:hover { background: rgba(239, 68, 68, 0.2); }
+        .btn-save { background: var(--green); color: white; font-size: 16px; width: 100%; padding: 15px; margin-top: 10px; }
+        .btn-save:hover { background: #059669; }
+        
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+        th, td { text-align: left; padding: 12px; border-bottom: 1px solid #334155; }
+        th { color: #94a3b8; }
+        .status-active { color: var(--green); font-weight: bold; }
+        .status-blocked { color: var(--red); font-weight: bold; }
+        .status-expired { color: #f59e0b; font-weight: bold; }
+        
+        #status-msg { margin-top: 10px; font-size: 14px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="title">SYSTEM: ADMIN PANEL</div>
+            <div>
+                <button class="btn-cyan" onclick="loadData()">Tải Lại Dữ Liệu</button>
+            </div>
+        </div>
+
+        <div class="panel">
+            <h3>CẤU HÌNH MÁY CHỦ (GITHUB)</h3>
+            <label>Mã API Token (Personal Access Token):</label>
+            <input type="password" id="gh-token" placeholder="ghp_xxxxxxxxxxxxxxx">
+            <button class="btn-cyan" onclick="saveToken()">Lưu Token Vào Máy</button>
+            <div id="status-msg"></div>
+        </div>
+
+        <div class="panel">
+            <h3>TẠO MÃ KÍCH HOẠT MỚI</h3>
+            <div class="row">
+                <div>
+                    <label>Mã Key (Tự tạo hoặc tự gõ):</label>
+                    <input type="text" id="new-key" placeholder="VD: VIP-TUNG-1234">
+                </div>
+                <div>
+                    <label>Thời Hạn:</label>
+                    <select id="new-duration">
+                        <option value="1">1 Ngày</option>
+                        <option value="7">7 Ngày</option>
+                        <option value="30">30 Ngày</option>
+                        <option value="3650">Vĩnh Viễn (10 Năm)</option>
+                    </select>
+                </div>
+                <div>
+                    <label>Ghi chú (Tên khách):</label>
+                    <input type="text" id="new-note" placeholder="Tên khách hàng...">
+                </div>
+            </div>
+            <button class="btn-cyan" onclick="generateKey()">+ Tạo Key Mới</button>
+        </div>
+
+        <div class="panel">
+            <h3>DANH SÁCH KEY ĐANG HOẠT ĐỘNG</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Mã Key</th>
+                        <th>Ghi Chú</th>
+                        <th>Hạn Sử Dụng</th>
+                        <th>Trạng Thái</th>
+                        <th>Hành Động</th>
+                    </tr>
+                </thead>
+                <tbody id="keys-table">
+                    <tr><td colspan="5">Đang tải dữ liệu...</td></tr>
+                </tbody>
+            </table>
+            
+            <button class="btn-save" onclick="saveToServer()">🚀 LƯU TẤT CẢ LÊN MÁY CHỦ</button>
+        </div>
+    </div>
+
+    <script>
+        const REPO = 'MRTOM212005/congnghemoi224';
+        const FILE_PATH = 'database.json';
+        
+        let dbData = {};
+        let fileSha = '';
+
+        function saveToken() {
+            const token = document.getElementById('gh-token').value;
+            localStorage.setItem('vip_gh_token', token);
+            document.getElementById('status-msg').innerText = "Đã lưu Token! Đang kết nối máy chủ...";
+            document.getElementById('status-msg').style.color = "var(--green)";
+            loadData();
+        }
+
+        window.onload = () => {
+            const token = localStorage.getItem('vip_gh_token');
+            if(token) {
+                document.getElementById('gh-token').value = token;
+                loadData();
+            }
+        };
+
+        function formatDate(ms) {
+            let d = new Date(ms);
+            return d.toLocaleDateString('vi-VN') + " " + d.toLocaleTimeString('vi-VN');
+        }
+
+        async function loadData() {
+            const token = document.getElementById('gh-token').value;
+            if(!token) {
+                alert("Vui lòng nhập Github Token trước!"); return;
+            }
+            
+            try {
+                let res = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}?t=${Date.now()}`, {
+                    headers: { 'Authorization': `token ${token}` }
+                });
+                if(!res.ok) throw new Error("Không thể kết nối. Sai Token hoặc Repo không tồn tại.");
+                
+                let data = await res.json();
+                fileSha = data.sha;
+                
+                // Decode base64 utf-8
+                let jsonStr = decodeURIComponent(escape(window.atob(data.content)));
+                dbData = JSON.parse(jsonStr);
+                
+                renderTable();
+                document.getElementById('status-msg').innerText = "Kết nối thành công! Đã tải dữ liệu.";
+                document.getElementById('status-msg').style.color = "var(--green)";
+            } catch (err) {
+                console.error(err);
+                document.getElementById('status-msg').innerText = "Lỗi: " + err.message;
+                document.getElementById('status-msg').style.color = "var(--red)";
+            }
+        }
+
+        function renderTable() {
+            let tbody = document.getElementById('keys-table');
+            tbody.innerHTML = '';
+            
+            let now = Date.now();
+            
+            for(let key in dbData) {
+                let info = dbData[key];
+                let isExpired = info.expires < now;
+                let statusText = isExpired ? 'HẾT HẠN' : (info.status === 'active' ? 'HOẠT ĐỘNG' : 'BỊ KHÓA');
+                let statusClass = isExpired ? 'status-expired' : (info.status === 'active' ? 'status-active' : 'status-blocked');
+                
+                let actionBtn = '';
+                if(info.status === 'active') {
+                    actionBtn = `<button class="btn-red" onclick="toggleStatus('${key}', 'blocked')">Khóa</button>`;
+                } else {
+                    actionBtn = `<button class="btn-cyan" onclick="toggleStatus('${key}', 'active')">Mở Khóa</button>`;
+                }
+
+                tbody.innerHTML += `
+                    <tr>
+                        <td style="font-family: monospace; font-weight: bold;">${key}</td>
+                        <td>${info.note || ''}</td>
+                        <td>${formatDate(info.expires)}</td>
+                        <td class="${statusClass}">${statusText}</td>
+                        <td>
+                            ${actionBtn}
+                            <button class="btn-red" style="padding: 10px; margin-left: 5px;" onclick="deleteKey('${key}')">Xóa</button>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        function generateKey() {
+            let key = document.getElementById('new-key').value.trim();
+            if(!key) {
+                // Tự tạo random
+                key = "VIP-" + Math.floor(Math.random() * 9000 + 1000) + "-" + Math.floor(Math.random() * 9000 + 1000);
+            }
+            if(dbData[key]) {
+                alert("Mã Key này đã tồn tại!"); return;
+            }
+            
+            let days = parseInt(document.getElementById('new-duration').value);
+            let note = document.getElementById('new-note').value;
+            
+            dbData[key] = {
+                created: Date.now(),
+                expires: Date.now() + (days * 24 * 60 * 60 * 1000),
+                status: "active",
+                note: note
+            };
+            
+            document.getElementById('new-key').value = '';
+            document.getElementById('new-note').value = '';
+            renderTable();
+            alert("Đã tạo Key thành công! VUI LÒNG BẤM 'LƯU LÊN MÁY CHỦ' ĐỂ LƯU CHÍNH THỨC.");
+        }
+
+        function toggleStatus(key, status) {
+            dbData[key].status = status;
+            renderTable();
+        }
+
+        function deleteKey(key) {
+            if(confirm("Bạn có chắc chắn muốn XÓA VĨNH VIỄN Key này?")) {
+                delete dbData[key];
+                renderTable();
+            }
+        }
+
+        async function saveToServer() {
+            const token = document.getElementById('gh-token').value;
+            if(!token || !fileSha) {
+                alert("Chưa kết nối hoặc chưa tải dữ liệu!"); return;
+            }
+            
+            try {
+                let jsonStr = JSON.stringify(dbData, null, 2);
+                let base64Content = window.btoa(unescape(encodeURIComponent(jsonStr)));
+                
+                let body = {
+                    message: "Admin: Cập nhật Database Keys",
+                    content: base64Content,
+                    sha: fileSha
+                };
+                
+                document.getElementById('status-msg').innerText = "Đang đẩy dữ liệu lên máy chủ Github...";
+                document.getElementById('status-msg').style.color = "var(--cyan)";
+                
+                let res = await fetch(`https://api.github.com/repos/${REPO}/contents/${FILE_PATH}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(body)
+                });
+                
+                if(!res.ok) {
+                    let err = await res.json();
+                    throw new Error(err.message);
+                }
+                
+                let data = await res.json();
+                fileSha = data.content.sha; // Update new SHA
+                
+                document.getElementById('status-msg').innerText = "ĐÃ LƯU THÀNH CÔNG! Khách hàng có thể dùng Key ngay.";
+                document.getElementById('status-msg').style.color = "var(--green)";
+                alert("LƯU THÀNH CÔNG VÀO DATABASE!");
+                
+            } catch (err) {
+                console.error(err);
+                alert("Lỗi khi lưu: " + err.message);
+            }
+        }
+    </script>
+</body>
+</html>

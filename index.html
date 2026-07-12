@@ -123,6 +123,34 @@
             position: relative;
             overflow: hidden;
         }
+        
+        /* LOGIN SCREEN STYLES */
+        #login-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-color); z-index: 100;
+            display: flex; justify-content: center; align-items: center;
+            backdrop-filter: blur(10px);
+        }
+        .login-box {
+            background: rgba(0,0,0,0.8); border: 2px solid var(--cyan);
+            padding: 30px; border-radius: 12px; text-align: center;
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.3);
+            width: 90%; max-width: 350px;
+        }
+        .login-box h2 { color: var(--cyan); margin-bottom: 20px; font-size: 18px; letter-spacing: 2px; }
+        .login-box input {
+            width: 100%; padding: 12px; background: rgba(255,255,255,0.1);
+            border: 1px solid #334155; color: white; border-radius: 4px;
+            margin-bottom: 20px; font-size: 16px; text-align: center; text-transform: uppercase;
+        }
+        .login-box button {
+            width: 100%; padding: 14px; background: rgba(0, 243, 255, 0.1);
+            color: var(--cyan); border: 1px solid var(--cyan);
+            border-radius: 4px; font-weight: bold; font-size: 14px; cursor: pointer;
+            transition: 0.3s;
+        }
+        .login-box button:hover { background: rgba(0, 243, 255, 0.3); }
+        #login-error { color: var(--red); font-size: 13px; margin-top: 15px; font-weight: bold; }
         .btn-execute:active {
             transform: scale(0.98);
         }
@@ -142,6 +170,17 @@
     </style>
 </head>
 <body>
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen">
+        <div class="login-box">
+            <h2>SYSTEM: AUTHORIZATION</h2>
+            <p style="color: #94a3b8; font-size: 12px; margin-bottom: 20px;">VUI LÒNG NHẬP MÃ KÍCH HOẠT VIP</p>
+            <input type="text" id="vip-key-input" placeholder="Nhập mã KEY...">
+            <button onclick="checkVipKey()">KÍCH HOẠT HỆ THỐNG</button>
+            <div id="login-error"></div>
+        </div>
+    </div>
+
     <div id="particles-js"></div>
     <div class="vip-box">
         <div class="vip-header">
@@ -177,6 +216,55 @@
     <script>
         let cvReady = false;
         let historyData = [];
+
+        // VIP LOGIN LOGIC
+        window.onload = () => {
+            const savedKey = localStorage.getItem('vip_active_key');
+            if(savedKey) {
+                verifyKey(savedKey, true);
+            }
+        };
+
+        async function checkVipKey() {
+            let key = document.getElementById('vip-key-input').value.trim().toUpperCase();
+            if(!key) return;
+            document.getElementById('login-error').innerText = "Đang kiểm tra dữ liệu máy chủ...";
+            document.getElementById('login-error').style.color = "#00f3ff";
+            verifyKey(key, false);
+        }
+
+        async function verifyKey(key, isAutoLogin) {
+            try {
+                // Thêm timestamp để tránh cache
+                let res = await fetch(`database.json?t=${Date.now()}`);
+                if(!res.ok) throw new Error("Lỗi kết nối máy chủ");
+                let db = await res.json();
+                
+                if(db[key]) {
+                    let info = db[key];
+                    if(info.status !== 'active') {
+                        throw new Error("Mã Key này đã bị Khóa bởi Admin!");
+                    }
+                    if(info.expires < Date.now()) {
+                        throw new Error("Mã Key đã hết hạn sử dụng!");
+                    }
+                    
+                    // Hợp lệ
+                    localStorage.setItem('vip_active_key', key);
+                    document.getElementById('login-screen').style.display = 'none';
+                    
+                } else {
+                    throw new Error("Mã Key không tồn tại!");
+                }
+            } catch (err) {
+                if(isAutoLogin) {
+                    localStorage.removeItem('vip_active_key'); // Xóa key cũ nếu hết hạn
+                } else {
+                    document.getElementById('login-error').innerText = err.message;
+                    document.getElementById('login-error').style.color = "var(--red)";
+                }
+            }
+        }
 
         function checkOpenCvReady() {
             if (typeof cv !== 'undefined' && cv.Mat) {
