@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SYSTEM: VIP PREDICTOR</title>
-    
     <!-- PWA Setup -->
     <link rel="manifest" href="./manifest.json">
     <meta name="theme-color" content="#000000">
@@ -12,7 +11,6 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="VIP PREDICTOR">
-    
     <style>
         :root {
             --bg-color: rgba(10, 17, 30, 0.95);
@@ -132,34 +130,6 @@
             position: relative;
             overflow: hidden;
         }
-        
-        /* LOGIN SCREEN STYLES */
-        #login-screen {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg-color); z-index: 100;
-            display: flex; justify-content: center; align-items: center;
-            backdrop-filter: blur(10px);
-        }
-        .login-box {
-            background: rgba(0,0,0,0.8); border: 2px solid var(--cyan);
-            padding: 30px; border-radius: 12px; text-align: center;
-            box-shadow: 0 0 30px rgba(0, 243, 255, 0.3);
-            width: 90%; max-width: 350px;
-        }
-        .login-box h2 { color: var(--cyan); margin-bottom: 20px; font-size: 18px; letter-spacing: 2px; }
-        .login-box input {
-            width: 100%; padding: 12px; background: rgba(255,255,255,0.1);
-            border: 1px solid #334155; color: white; border-radius: 4px;
-            margin-bottom: 20px; font-size: 16px; text-align: center; text-transform: uppercase;
-        }
-        .login-box button {
-            width: 100%; padding: 14px; background: rgba(0, 243, 255, 0.1);
-            color: var(--cyan); border: 1px solid var(--cyan);
-            border-radius: 4px; font-weight: bold; font-size: 14px; cursor: pointer;
-            transition: 0.3s;
-        }
-        .login-box button:hover { background: rgba(0, 243, 255, 0.3); }
-        #login-error { color: var(--red); font-size: 13px; margin-top: 15px; font-weight: bold; }
         .btn-execute:active {
             transform: scale(0.98);
         }
@@ -179,17 +149,6 @@
     </style>
 </head>
 <body>
-    <!-- LOGIN SCREEN -->
-    <div id="login-screen">
-        <div class="login-box">
-            <h2>SYSTEM: AUTHORIZATION</h2>
-            <p style="color: #94a3b8; font-size: 12px; margin-bottom: 20px;">VUI LÒNG NHẬP MÃ KÍCH HOẠT VIP</p>
-            <input type="text" id="vip-key-input" placeholder="Nhập mã KEY...">
-            <button onclick="checkVipKey()">KÍCH HOẠT HỆ THỐNG</button>
-            <div id="login-error"></div>
-        </div>
-    </div>
-
     <div id="particles-js"></div>
     <div class="vip-box">
         <div class="vip-header">
@@ -225,55 +184,6 @@
     <script>
         let cvReady = false;
         let historyData = [];
-
-        // VIP LOGIN LOGIC
-        window.onload = () => {
-            const savedKey = localStorage.getItem('vip_active_key');
-            if(savedKey) {
-                verifyKey(savedKey, true);
-            }
-        };
-
-        async function checkVipKey() {
-            let key = document.getElementById('vip-key-input').value.trim().toUpperCase();
-            if(!key) return;
-            document.getElementById('login-error').innerText = "Đang kiểm tra dữ liệu máy chủ...";
-            document.getElementById('login-error').style.color = "#00f3ff";
-            verifyKey(key, false);
-        }
-
-        async function verifyKey(key, isAutoLogin) {
-            try {
-                // Thêm timestamp để tránh cache
-                let res = await fetch(`database.json?t=${Date.now()}`);
-                if(!res.ok) throw new Error("Lỗi kết nối máy chủ");
-                let db = await res.json();
-                
-                if(db[key]) {
-                    let info = db[key];
-                    if(info.status !== 'active') {
-                        throw new Error("Mã Key này đã bị Khóa bởi Admin!");
-                    }
-                    if(info.expires < Date.now()) {
-                        throw new Error("Mã Key đã hết hạn sử dụng!");
-                    }
-                    
-                    // Hợp lệ
-                    localStorage.setItem('vip_active_key', key);
-                    document.getElementById('login-screen').style.display = 'none';
-                    
-                } else {
-                    throw new Error("Mã Key không tồn tại!");
-                }
-            } catch (err) {
-                if(isAutoLogin) {
-                    localStorage.removeItem('vip_active_key'); // Xóa key cũ nếu hết hạn
-                } else {
-                    document.getElementById('login-error').innerText = err.message;
-                    document.getElementById('login-error').style.color = "var(--red)";
-                }
-            }
-        }
 
         function checkOpenCvReady() {
             if (typeof cv !== 'undefined' && cv.Mat) {
@@ -334,25 +244,69 @@
             reader.readAsDataURL(file);
         }
 
+        function getScanFailureReason(src) {
+            try {
+                let gray = new cv.Mat();
+                cv.cvtColor(src, gray, cv.COLOR_RGBA2GRAY);
+                
+                // Tính độ sáng trung bình
+                let mean = cv.mean(gray)[0];
+                
+                if (mean < 35) {
+                    gray.delete();
+                    return "Ảnh bị TỐI (thiếu ánh sáng). Vui lòng tăng độ sáng màn hình game hoặc bật thêm đèn.";
+                }
+                if (mean > 220) {
+                    gray.delete();
+                    return "Ảnh bị SÁNG QUÁ hoặc LÓA ĐÈN. Vui lòng tắt đèn chiếu thẳng vào màn hình hoặc đổi góc chụp tránh phản chiếu.";
+                }
+                
+                // Tính độ tương phản (Contrast)
+                let minMax = cv.minMaxLoc(gray);
+                let contrast = minMax.maxVal - minMax.minVal;
+                gray.delete();
+
+                if (contrast < 80) {
+                    return "Ảnh bị MỜ/NHÒE (camera rung hoặc không lấy nét). Vui lòng giữ chắc tay và chụp lại rõ nét hơn.";
+                }
+                
+                return "Không tìm thấy bảng hạt Bead Plate. Vui lòng đưa camera lại gần, căn chỉnh chụp chính xác bảng tròn lịch sử ở góc trái dưới bàn chơi.";
+            } catch (e) {
+                return "Ảnh không đủ chất lượng hoặc sai góc chụp. Vui lòng chụp ảnh thẳng góc, rõ nét và đủ ánh sáng.";
+            }
+        }
+
         function processLiveFrame(canvas) {
             let src, hsv, mask_r1, mask_r2, mask_r, mask_b, mask_g;
             let lower_red1, upper_red1, lower_red2, upper_red2, lower_blue, upper_blue, lower_green, upper_green;
             
             try {
                 src = cv.imread(canvas);
+
+                // 1. Tự động làm sắc nét ảnh (Sharpening Filter) để trị ảnh mờ/nhòe do rung tay
+                let sharp = new cv.Mat();
+                let kernel = cv.matFromArray(3, 3, cv.CV_32F, [
+                     0, -1,  0,
+                    -1,  5, -1,
+                     0, -1,  0
+                ]);
+                cv.filter2D(src, sharp, -1, kernel);
+
+                // Chuyển đổi sang hệ màu HSV từ ảnh đã được làm nét
                 hsv = new cv.Mat();
-                cv.cvtColor(src, hsv, cv.COLOR_RGBA2RGB);
+                cv.cvtColor(sharp, hsv, cv.COLOR_RGBA2RGB);
                 cv.cvtColor(hsv, hsv, cv.COLOR_RGB2HSV);
+                sharp.delete(); kernel.delete();
 
                 document.getElementById('ai-status').innerText = "4/4: ĐANG TRÍCH XUẤT MA TRẬN MÀU...";
 
-                // Red
-                lower_red1 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [0, 40, 50, 0]);
-                upper_red1 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [15, 255, 255, 0]);
+                // Red (Mở rộng dải màu HSV nhạy hơn để chống lóa và bóng tối)
+                lower_red1 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [0, 20, 20, 0]);
+                upper_red1 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [20, 255, 255, 0]);
                 mask_r1 = new cv.Mat();
                 cv.inRange(hsv, lower_red1, upper_red1, mask_r1);
 
-                lower_red2 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [160, 40, 50, 0]);
+                lower_red2 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [150, 20, 20, 0]);
                 upper_red2 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [180, 255, 255, 0]);
                 mask_r2 = new cv.Mat();
                 cv.inRange(hsv, lower_red2, upper_red2, mask_r2);
@@ -360,14 +314,14 @@
                 mask_r = new cv.Mat();
                 cv.add(mask_r1, mask_r2, mask_r);
 
-                // Blue
-                lower_blue = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [90, 40, 50, 0]);
-                upper_blue = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [130, 255, 255, 0]);
+                // Blue (Xanh nước biển)
+                lower_blue = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [85, 20, 20, 0]);
+                upper_blue = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [140, 255, 255, 0]);
                 mask_b = new cv.Mat();
                 cv.inRange(hsv, lower_blue, upper_blue, mask_b);
 
-                // Green
-                lower_green = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [35, 40, 50, 0]);
+                // Green (Hòa - Màu xanh lá)
+                lower_green = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [30, 20, 20, 0]);
                 upper_green = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [85, 255, 255, 0]);
                 mask_g = new cv.Mat();
                 cv.inRange(hsv, lower_green, upper_green, mask_g);
@@ -384,8 +338,16 @@
                         if (area > 3 && area < src.rows * src.cols * 0.1) {
                             let rect = cv.boundingRect(cnt);
                             let aspect = rect.width / rect.height;
-                            if (aspect > 0.6 && aspect < 1.6) {
-                                dots.push({ x: rect.x, y: rect.y, color: colorLabel, w: rect.width });
+                            // Thu hẹp tỷ lệ khía cạnh để lọc hình bầu dục dài
+                            if (aspect > 0.7 && aspect < 1.4) {
+                                // Tính toán độ tròn (Circularity) để loại bỏ các vật thể phong cảnh méo mó
+                                let perimeter = cv.arcLength(cnt, true);
+                                if (perimeter > 0) {
+                                    let circularity = (4 * Math.PI * area) / (perimeter * perimeter);
+                                    if (circularity > 0.72) { // Hạt tròn chuẩn thường có độ tròn > 0.78
+                                        dots.push({ x: rect.x, y: rect.y, color: colorLabel, w: rect.width });
+                                    }
+                                }
                             }
                         }
                     }
@@ -398,6 +360,42 @@
                 allDots = allDots.concat(findDots(mask_b, 'P'));
                 allDots = allDots.concat(findDots(mask_g, 'T'));
 
+                // Bộ lọc nhiễu kích thước: Chỉ giữ lại các chấm tròn to của Bảng Hạt (Bead Plate)
+                // Loại bỏ hoàn toàn các chấm nhỏ của bảng phụ (Big Road) hoặc các đốm sáng nhiễu nền
+                if (allDots.length > 0) {
+                    let maxW = 0;
+                    allDots.forEach(d => { if (d.w > maxW) maxW = d.w; });
+                    // Chỉ giữ các chấm có kích thước từ 65% đến 135% của hạt lớn nhất phát hiện được
+                    allDots = allDots.filter(d => d.w >= maxW * 0.65 && d.w <= maxW * 1.35);
+                }
+
+                // Kiểm tra cấu trúc lưới Baccarat hợp lệ (chống chụp cảnh vật linh tinh)
+                let failureReason = "";
+                if (allDots.length > 0) {
+                    let minY = Infinity, maxY = -Infinity;
+                    let avgW = 0;
+                    allDots.forEach(d => {
+                        if (d.y < minY) minY = d.y;
+                        if (d.y > maxY) maxY = d.y;
+                        avgW += d.w;
+                    });
+                    avgW /= allDots.length;
+                    
+                    let rowHeight = (maxY - minY) / 5;
+                    // Nếu số lượng chấm quá ít hoặc khoảng cách phân bổ quá lớn/méo mó so với kích thước hạt
+                    if (allDots.length < 4) {
+                        allDots = []; // Hủy kết quả
+                        failureReason = "Ảnh chụp không phát hiện đủ số lượng hạt. Vui lòng căn camera lại gần bảng lịch sử hơn.";
+                    } else if (rowHeight > avgW * 2.2 || rowHeight < avgW * 0.4) {
+                        allDots = []; // Hủy kết quả
+                        failureReason = "Ảnh chụp phong cảnh hoặc ngoài bảng chơi. Vui lòng hướng camera chính xác vào bảng hạt lịch sử Baccarat.";
+                    }
+                }
+
+                if (allDots.length === 0 && !failureReason) {
+                    failureReason = getScanFailureReason(src);
+                }
+
                 // Clean up Mats early
                 src.delete(); hsv.delete(); mask_r1.delete(); mask_r2.delete(); mask_r.delete();
                 mask_b.delete(); mask_g.delete(); lower_red1.delete(); upper_red1.delete();
@@ -405,43 +403,96 @@
                 lower_green.delete(); upper_green.delete();
 
                 if(allDots.length > 0) {
-                    allDots.sort((a, b) => a.x - b.x);
+                    // 1. Tìm các tọa độ cực trị để xác định khung bao quanh của bảng hạt (Bead Plate)
+                    let minX = Infinity, maxX = -Infinity;
+                    let minY = Infinity, maxY = -Infinity;
+                    let avgW = 0;
+                    allDots.forEach(d => {
+                        if (d.x < minX) minX = d.x;
+                        if (d.x > maxX) maxX = d.x;
+                        if (d.y < minY) minY = d.y;
+                        if (d.y > maxY) maxY = d.y;
+                        avgW += d.w;
+                    });
+                    avgW /= allDots.length;
 
-                    let columns = [];
-                    let currCol = [allDots[0]];
-                    let refW = allDots[0].w;
-                    
-                    for(let i=1; i<allDots.length; i++) {
-                        let d = allDots[i];
-                        if (Math.abs(d.x - currCol[currCol.length-1].x) < refW * 1.5) {
-                            currCol.push(d);
-                        } else {
-                            columns.push(currCol);
-                            currCol = [d];
+                    // Số dòng của bảng baccarat luôn cố định là 6
+                    let rowCount = 6;
+                    let rowHeight = (maxY - minY) / 5;
+                    if (rowHeight <= 0) rowHeight = avgW;
+
+                    // Ước lượng số cột dựa trên chiều ngang và chiều cao của dòng
+                    let colCount = Math.round((maxX - minX) / rowHeight) + 1;
+                    if (colCount < 1) colCount = 1;
+                    if (colCount > 12) colCount = 12; // Hạn chế tối đa 12 cột thông dụng
+
+                    let colWidth = colCount > 1 ? (maxX - minX) / (colCount - 1) : avgW;
+
+                    // Khởi tạo ma trận lưới rỗng kích thước colCount x rowCount
+                    let grid = Array(colCount).fill().map(() => Array(rowCount).fill(null));
+
+                    // Đổ các hạt đã quét thành công bằng OpenCV vào đúng các ô lưới gần nhất
+                    allDots.forEach(d => {
+                        let c = Math.round((d.x - minX) / colWidth);
+                        let r = Math.round((d.y - minY) / rowHeight);
+                        c = Math.max(0, Math.min(colCount - 1, c));
+                        r = Math.max(0, Math.min(rowCount - 1, r));
+                        grid[c][r] = d.color;
+                    });
+
+                    // 2. Tự động phục hồi các hạt bị mất (do lóa/mờ) bằng cách đọc màu trực tiếp tại tọa độ lưới trên canvas
+                    let ctx = canvas.getContext('2d');
+                    for (let c = 0; c < colCount; c++) {
+                        for (let r = 0; r < rowCount; r++) {
+                            if (grid[c][r] === null) {
+                                // Tọa độ chính giữa ô lưới bị thiếu trên ảnh
+                                let targetX = Math.round(minX + c * colWidth + avgW / 2);
+                                let targetY = Math.round(minY + r * rowHeight + avgW / 2);
+
+                                // Tránh vượt quá biên ảnh
+                                targetX = Math.max(0, Math.min(canvas.width - 1, targetX));
+                                targetY = Math.max(0, Math.min(canvas.height - 1, targetY));
+
+                                // Đọc màu pixel tại tọa độ này
+                                let pixel = ctx.getImageData(targetX, targetY, 1, 1).data;
+                                let R = pixel[0], G = pixel[1], B = pixel[2];
+
+                                // Nhận diện màu thông minh theo hệ RGB
+                                if (R > 120 && G < 80 && B < 80) {
+                                    grid[c][r] = 'B'; // Cái (Banker) - Đỏ
+                                } else if (B > 120 && R < 80 && G < 120) {
+                                    grid[c][r] = 'P'; // Con (Player) - Xanh dương
+                                } else if (G > 100 && R < 100 && B < 100) {
+                                    grid[c][r] = 'T'; // Hòa (Tie) - Xanh lá
+                                }
+                            }
                         }
                     }
-                    columns.push(currCol);
 
-                    let beadPlateCols = columns.slice(0, 10);
+                    // 3. Chuyển ma trận lưới đã khôi phục hoàn chỉnh thành chuỗi lịch sử (từ trái qua phải, trên xuống dưới)
                     historyData = [];
-                    for(let col of beadPlateCols) {
-                        col.sort((a, b) => a.y - b.y);
-                        for(let dot of col) {
-                            historyData.push(dot.color);
+                    for (let c = 0; c < colCount; c++) {
+                        for (let r = 0; r < rowCount; r++) {
+                            if (grid[c][r] !== null) {
+                                historyData.push(grid[c][r]);
+                            }
                         }
                     }
 
                     updatePrediction();
-                    document.getElementById('ai-status').innerText = `QUÉT THÀNH CÔNG! (${historyData.length} ván)`;
-                    document.getElementById('ai-status').style.color = "#10b981";
+                    document.getElementById('ai-status').innerText = ""; // Xóa phần thống kê số lượng ván
                 } else {
-                    document.getElementById('ai-status').innerText = "KHÔNG TÌM THẤY BẢNG LỊCH SỬ HẠT!";
-                    document.getElementById('ai-status').style.color = "#ef4444";
+                    document.getElementById('ai-status').innerHTML = 
+                        `<span style="color:#ef4444; font-weight:bold;">QUÉT THẤT BẠI!</span><br>` +
+                        `<span style="font-size:12px; color:#94a3b8; display:inline-block; margin-top:4px; line-height: 1.4;">Lý do: ${failureReason}</span><br>` +
+                        `<span style="color:#00f3ff; font-weight:bold; font-size:13px; display:inline-block; margin-top:8px;">👉 Vui lòng chụp lại ảnh khác!</span>`;
                 }
             } catch (err) {
                 console.error(err);
-                document.getElementById('ai-status').innerText = "LỖI PHÂN TÍCH ẢNH!";
-                document.getElementById('ai-status').style.color = "#ef4444";
+                document.getElementById('ai-status').innerHTML = 
+                    `<span style="color:#ef4444; font-weight:bold;">QUÉT THẤT BẠI!</span><br>` +
+                    `<span style="font-size:12px; color:#94a3b8; display:inline-block; margin-top:4px;">Lý do: Lỗi xử lý dữ liệu ảnh hoặc sai định dạng.</span><br>` +
+                    `<span style="color:#00f3ff; font-weight:bold; font-size:13px; display:inline-block; margin-top:8px;">👉 Vui lòng chụp lại ảnh khác!</span>`;
             }
             
             document.getElementById('file-upload').value = '';
@@ -498,12 +549,10 @@
             }
             subBetEl.innerText = "CẦU CHÍNH: " + pattern.toUpperCase();
         }
+    </script>
+    
+    <script async src="./opencv.js" onload="checkOpenCvReady()" type="text/javascript"></script>
 
-        function drawPredictBoxes(bankerScore, playerScore) {
-            document.getElementById('c-banker').innerText = bankerScore + "%";
-            document.getElementById('c-player').innerText = playerScore + "%";
-        }
-        
         // Register Service Worker for PWA
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
@@ -515,8 +564,6 @@
             });
         }
     </script>
-    
-    <script async src="./opencv.js" onload="checkOpenCvReady()" type="text/javascript"></script>
 
     <script>
         particlesJS("particles-js", {
