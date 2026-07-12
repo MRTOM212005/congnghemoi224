@@ -266,8 +266,9 @@
             }
         }
 
-        function checkOpenCvReady() {
-            if (typeof cv !== 'undefined' && cv.Mat) {
+        // Khởi tạo OpenCV bằng cách chuẩn
+        var Module = {
+            onRuntimeInitialized: function() {
                 cvReady = true;
                 document.getElementById('ai-status').innerText = "HỆ THỐNG ĐÃ SẴN SÀNG!";
                 document.getElementById('ai-status').style.color = "#10b981";
@@ -276,11 +277,9 @@
                 btn.style.color = "#00f3ff";
                 btn.style.borderColor = "#00f3ff";
                 btn.innerText = "EXECUTE ANALYSIS";
-            } else {
-                setTimeout(checkOpenCvReady, 500);
             }
-        }
-        
+        };
+
         function handleImageUpload(event) {
             if (!cvReady) return;
             const file = event.target.files[0];
@@ -491,7 +490,7 @@
         }
     </script>
     
-    <script async src="https://cdn.jsdelivr.net/gh/wallat/compiled-opencv/opencv.js" onload="checkOpenCvReady()" type="text/javascript"></script>
+    <script async src="https://cdnjs.cloudflare.com/ajax/libs/opencv.js/4.8.0/opencv.min.js" type="text/javascript"></script>
 
     <script>
         particlesJS("particles-js", {
