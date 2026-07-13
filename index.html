@@ -298,6 +298,19 @@
                 cv.cvtColor(hsv, hsv, cv.COLOR_RGB2HSV);
                 sharp.delete(); kernel.delete();
 
+                // Cân bằng sáng thích ứng CLAHE trên kênh độ sáng (V - Value) của HSV để chống lóa sáng/bóng tối
+                let hsvChannels = new cv.MatVector();
+                cv.split(hsv, hsvChannels);
+                let vChannel = hsvChannels.get(2);
+                let equalizedV = new cv.Mat();
+                let clahe = new cv.CLAHE(2.0, new cv.Size(8, 8));
+                clahe.apply(vChannel, equalizedV);
+                hsvChannels.set(2, equalizedV);
+                cv.merge(hsvChannels, hsv);
+
+                // Dọn dẹp bộ nhớ tạm của CLAHE
+                vChannel.delete(); equalizedV.delete(); clahe.delete(); hsvChannels.delete();
+
                 document.getElementById('ai-status').innerText = "4/4: ĐANG TRÍCH XUẤT MA TRẬN MÀU...";
 
                 // Setup dải màu chuẩn (Mở rộng dải màu HSV nhạy hơn rất nhiều để chống lóa phản chiếu màn hình và bóng tối)
