@@ -301,53 +301,67 @@
                 document.getElementById('ai-status').innerText = "4/4: ĐANG TRÍCH XUẤT MA TRẬN MÀU...";
 
                 // Red (Mở rộng dải màu HSV nhạy hơn để chống lóa và bóng tối)
-                lower_red1 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [0, 20, 20, 0]);
-                upper_red1 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [20, 255, 255, 0]);
+                lower_red1 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [0, 80, 50, 0]);
+                upper_red1 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [10, 255, 255, 0]);
+                
+                lower_red2 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [170, 80, 50, 0]);
+                upper_red2 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [180, 255, 255, 0]);
+
+                lower_blue = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [90, 80, 50, 0]);
+                upper_blue = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [130, 255, 255, 0]);
+
+                lower_green = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [35, 60, 50, 0]);
+                upper_green = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [85, 255, 255, 0]);
+
                 mask_r1 = new cv.Mat();
                 cv.inRange(hsv, lower_red1, upper_red1, mask_r1);
 
-                lower_red2 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [150, 20, 20, 0]);
-                upper_red2 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [180, 255, 255, 0]);
                 mask_r2 = new cv.Mat();
                 cv.inRange(hsv, lower_red2, upper_red2, mask_r2);
 
                 mask_r = new cv.Mat();
                 cv.add(mask_r1, mask_r2, mask_r);
 
-                // Blue (Xanh nước biển)
-                lower_blue = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [85, 20, 20, 0]);
-                upper_blue = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [140, 255, 255, 0]);
                 mask_b = new cv.Mat();
                 cv.inRange(hsv, lower_blue, upper_blue, mask_b);
 
-                // Green (Hòa - Màu xanh lá)
-                lower_green = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [30, 20, 20, 0]);
-                upper_green = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [85, 255, 255, 0]);
                 mask_g = new cv.Mat();
                 cv.inRange(hsv, lower_green, upper_green, mask_g);
 
-                function findDots(mask, colorLabel) {
+                // Thực hiện đóng/mở hình thái (morphologyEx) để làm sạch nhiễu
+                let kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(3, 3));
+                
+                let clean_mask_r = new cv.Mat();
+                cv.morphologyEx(mask_r, clean_mask_r, cv.MORPH_OPEN, kernel);
+                cv.morphologyEx(clean_mask_r, clean_mask_r, cv.MORPH_CLOSE, kernel);
+
+                let clean_mask_b = new cv.Mat();
+                cv.morphologyEx(mask_b, clean_mask_b, cv.MORPH_OPEN, kernel);
+                cv.morphologyEx(clean_mask_b, clean_mask_b, cv.MORPH_CLOSE, kernel);
+
+                let clean_mask_g = new cv.Mat();
+                cv.morphologyEx(mask_g, clean_mask_g, cv.MORPH_OPEN, kernel);
+                cv.morphologyEx(clean_mask_g, clean_mask_g, cv.MORPH_CLOSE, kernel);
+
+                function findDots(cleanMask, colorChar) {
                     let contours = new cv.MatVector();
                     let hierarchy = new cv.Mat();
-                    cv.findContours(mask, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
+                    cv.findContours(cleanMask, contours, hierarchy, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE);
                     let dots = [];
                     for (let i = 0; i < contours.size(); i++) {
                         let cnt = contours.get(i);
                         let area = cv.contourArea(cnt);
-                        // Giảm diện tích tối thiểu vì ảnh đã bị thu nhỏ xuống 600px
-                        if (area > 3 && area < src.rows * src.cols * 0.1) {
+                        if (area > 8 && area < src.rows * src.cols * 0.05) {
                             let rect = cv.boundingRect(cnt);
                             let aspect = rect.width / rect.height;
-                            // Thu hẹp tỷ lệ khía cạnh để lọc hình bầu dục dài
                             if (aspect > 0.7 && aspect < 1.4) {
-                                // Tính toán độ tròn (Circularity) để loại bỏ các vật thể phong cảnh méo mó
-                                let perimeter = cv.arcLength(cnt, true);
-                                if (perimeter > 0) {
-                                    let circularity = (4 * Math.PI * area) / (perimeter * perimeter);
-                                    if (circularity > 0.72) { // Hạt tròn chuẩn thường có độ tròn > 0.78
-                                        dots.push({ x: rect.x, y: rect.y, color: colorLabel, w: rect.width });
-                                    }
-                                }
+                                dots.push({
+                                    x: rect.x + rect.width / 2,
+                                    y: rect.y + rect.height / 2,
+                                    w: rect.width,
+                                    color: colorChar,
+                                    area: area
+                                });
                             }
                         }
                     }
@@ -356,39 +370,66 @@
                 }
 
                 let allDots = [];
-                allDots = allDots.concat(findDots(mask_r, 'B'));
-                allDots = allDots.concat(findDots(mask_b, 'P'));
-                allDots = allDots.concat(findDots(mask_g, 'T'));
+                allDots = allDots.concat(findDots(clean_mask_r, 'B'));
+                allDots = allDots.concat(findDots(clean_mask_b, 'P'));
+                allDots = allDots.concat(findDots(clean_mask_g, 'T'));
 
-                // Bộ lọc nhiễu kích thước: Chỉ giữ lại các chấm tròn to của Bảng Hạt (Bead Plate)
-                // Loại bỏ hoàn toàn các chấm nhỏ của bảng phụ (Big Road) hoặc các đốm sáng nhiễu nền
+                // Tự hiệu chuẩn bộ lọc nhiễu theo diện tích trung vị (Median Area)
                 if (allDots.length > 0) {
-                    let maxW = 0;
-                    allDots.forEach(d => { if (d.w > maxW) maxW = d.w; });
-                    // Chỉ giữ các chấm có kích thước từ 65% đến 135% của hạt lớn nhất phát hiện được
-                    allDots = allDots.filter(d => d.w >= maxW * 0.65 && d.w <= maxW * 1.35);
+                    let areas = allDots.map(d => d.area).sort((a, b) => a - b);
+                    let medianArea = areas[Math.floor(areas.length / 2)];
+                    allDots = allDots.filter(d => d.area >= medianArea * 0.35 && d.area <= medianArea * 2.5);
                 }
 
-                // Kiểm tra cấu trúc lưới Baccarat hợp lệ (chống chụp cảnh vật linh tinh)
                 let failureReason = "";
                 if (allDots.length > 0) {
-                    let minY = Infinity, maxY = -Infinity;
+                    // Tính kích thước hạt trung bình
                     let avgW = 0;
-                    allDots.forEach(d => {
-                        if (d.y < minY) minY = d.y;
-                        if (d.y > maxY) maxY = d.y;
-                        avgW += d.w;
-                    });
+                    allDots.forEach(d => avgW += d.w);
                     avgW /= allDots.length;
-                    
-                    let rowHeight = (maxY - minY) / 5;
-                    // Nếu số lượng chấm quá ít hoặc khoảng cách phân bổ quá lớn/méo mó so với kích thước hạt
+
+                    // Sắp xếp các hạt từ trái sang phải
+                    allDots.sort((a, b) => a.x - b.x);
+
+                    // Gom nhóm các hạt thành các cột
+                    let columns = [];
+                    let current_col = [];
+                    let col_width_thresh = avgW * 0.85;
+
+                    allDots.forEach(dot => {
+                        if (current_col.length === 0) {
+                            current_col.push(dot);
+                        } else {
+                            if (Math.abs(dot.x - current_col[current_col.length - 1].x) < col_width_thresh) {
+                                current_col.push(dot);
+                            } else {
+                                current_col.sort((a, b) => a.y - b.y);
+                                columns.push(current_col);
+                                current_col = [dot];
+                            }
+                        }
+                    });
+                    if (current_col.length > 0) {
+                        current_col.sort((a, b) => a.y - b.y);
+                        columns.push(current_col);
+                    }
+
+                    // Kiểm tra lưới hạt hợp lệ
+                    let totalCols = columns.length;
                     if (allDots.length < 4) {
-                        allDots = []; // Hủy kết quả
+                        allDots = [];
                         failureReason = "Ảnh chụp không phát hiện đủ số lượng hạt. Vui lòng căn camera lại gần bảng lịch sử hơn.";
-                    } else if (rowHeight > avgW * 2.2 || rowHeight < avgW * 0.4) {
-                        allDots = []; // Hủy kết quả
+                    } else if (totalCols > 15) {
+                        allDots = [];
                         failureReason = "Ảnh chụp phong cảnh hoặc ngoài bảng chơi. Vui lòng hướng camera chính xác vào bảng hạt lịch sử Baccarat.";
+                    } else {
+                        let finalResults = [];
+                        columns.forEach(col => {
+                            col.forEach(dot => {
+                                finalResults.push(dot.color);
+                            });
+                        });
+                        historyData = finalResults;
                     }
                 }
 
@@ -396,91 +437,16 @@
                     failureReason = getScanFailureReason(src);
                 }
 
-                // Clean up Mats early
+                // Cleanup các vùng nhớ OpenCV
                 src.delete(); hsv.delete(); mask_r1.delete(); mask_r2.delete(); mask_r.delete();
                 mask_b.delete(); mask_g.delete(); lower_red1.delete(); upper_red1.delete();
                 lower_red2.delete(); upper_red2.delete(); lower_blue.delete(); upper_blue.delete();
-                lower_green.delete(); upper_green.delete();
+                lower_green.delete(); upper_green.delete(); kernel.delete();
+                clean_mask_r.delete(); clean_mask_b.delete(); clean_mask_g.delete();
 
-                if(allDots.length > 0) {
-                    // 1. Tìm các tọa độ cực trị để xác định khung bao quanh của bảng hạt (Bead Plate)
-                    let minX = Infinity, maxX = -Infinity;
-                    let minY = Infinity, maxY = -Infinity;
-                    let avgW = 0;
-                    allDots.forEach(d => {
-                        if (d.x < minX) minX = d.x;
-                        if (d.x > maxX) maxX = d.x;
-                        if (d.y < minY) minY = d.y;
-                        if (d.y > maxY) maxY = d.y;
-                        avgW += d.w;
-                    });
-                    avgW /= allDots.length;
-
-                    // Số dòng của bảng baccarat luôn cố định là 6
-                    let rowCount = 6;
-                    let rowHeight = (maxY - minY) / 5;
-                    if (rowHeight <= 0) rowHeight = avgW;
-
-                    // Ước lượng số cột dựa trên chiều ngang và chiều cao của dòng
-                    let colCount = Math.round((maxX - minX) / rowHeight) + 1;
-                    if (colCount < 1) colCount = 1;
-                    if (colCount > 12) colCount = 12; // Hạn chế tối đa 12 cột thông dụng
-
-                    let colWidth = colCount > 1 ? (maxX - minX) / (colCount - 1) : avgW;
-
-                    // Khởi tạo ma trận lưới rỗng kích thước colCount x rowCount
-                    let grid = Array(colCount).fill().map(() => Array(rowCount).fill(null));
-
-                    // Đổ các hạt đã quét thành công bằng OpenCV vào đúng các ô lưới gần nhất
-                    allDots.forEach(d => {
-                        let c = Math.round((d.x - minX) / colWidth);
-                        let r = Math.round((d.y - minY) / rowHeight);
-                        c = Math.max(0, Math.min(colCount - 1, c));
-                        r = Math.max(0, Math.min(rowCount - 1, r));
-                        grid[c][r] = d.color;
-                    });
-
-                    // 2. Tự động phục hồi các hạt bị mất (do lóa/mờ) bằng cách đọc màu trực tiếp tại tọa độ lưới trên canvas
-                    let ctx = canvas.getContext('2d');
-                    for (let c = 0; c < colCount; c++) {
-                        for (let r = 0; r < rowCount; r++) {
-                            if (grid[c][r] === null) {
-                                // Tọa độ chính giữa ô lưới bị thiếu trên ảnh
-                                let targetX = Math.round(minX + c * colWidth + avgW / 2);
-                                let targetY = Math.round(minY + r * rowHeight + avgW / 2);
-
-                                // Tránh vượt quá biên ảnh
-                                targetX = Math.max(0, Math.min(canvas.width - 1, targetX));
-                                targetY = Math.max(0, Math.min(canvas.height - 1, targetY));
-
-                                // Đọc màu pixel tại tọa độ này
-                                let pixel = ctx.getImageData(targetX, targetY, 1, 1).data;
-                                let R = pixel[0], G = pixel[1], B = pixel[2];
-
-                                // Nhận diện màu thông minh theo hệ RGB
-                                if (R > 120 && G < 80 && B < 80) {
-                                    grid[c][r] = 'B'; // Cái (Banker) - Đỏ
-                                } else if (B > 120 && R < 80 && G < 120) {
-                                    grid[c][r] = 'P'; // Con (Player) - Xanh dương
-                                } else if (G > 100 && R < 100 && B < 100) {
-                                    grid[c][r] = 'T'; // Hòa (Tie) - Xanh lá
-                                }
-                            }
-                        }
-                    }
-
-                    // 3. Chuyển ma trận lưới đã khôi phục hoàn chỉnh thành chuỗi lịch sử (từ trái qua phải, trên xuống dưới)
-                    historyData = [];
-                    for (let c = 0; c < colCount; c++) {
-                        for (let r = 0; r < rowCount; r++) {
-                            if (grid[c][r] !== null) {
-                                historyData.push(grid[c][r]);
-                            }
-                        }
-                    }
-
+                if (allDots.length > 0) {
                     updatePrediction();
-                    document.getElementById('ai-status').innerText = ""; // Xóa phần thống kê số lượng ván
+                    document.getElementById('ai-status').innerText = "";
                 } else {
                     document.getElementById('ai-status').innerHTML = 
                         `<span style="color:#ef4444; font-weight:bold;">QUÉT THẤT BẠI!</span><br>` +
