@@ -329,19 +329,19 @@
                 cv.inRange(hsv, lower_green, upper_green, mask_g);
 
                 // Thực hiện đóng/mở hình thái (morphologyEx) để làm sạch nhiễu
-                let kernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(3, 3));
+                let morphKernel = cv.getStructuringElement(cv.MORPH_ELLIPSE, new cv.Size(3, 3));
                 
                 let clean_mask_r = new cv.Mat();
-                cv.morphologyEx(mask_r, clean_mask_r, cv.MORPH_OPEN, kernel);
-                cv.morphologyEx(clean_mask_r, clean_mask_r, cv.MORPH_CLOSE, kernel);
+                cv.morphologyEx(mask_r, clean_mask_r, cv.MORPH_OPEN, morphKernel);
+                cv.morphologyEx(clean_mask_r, clean_mask_r, cv.MORPH_CLOSE, morphKernel);
 
                 let clean_mask_b = new cv.Mat();
-                cv.morphologyEx(mask_b, clean_mask_b, cv.MORPH_OPEN, kernel);
-                cv.morphologyEx(clean_mask_b, clean_mask_b, cv.MORPH_CLOSE, kernel);
+                cv.morphologyEx(mask_b, clean_mask_b, cv.MORPH_OPEN, morphKernel);
+                cv.morphologyEx(clean_mask_b, clean_mask_b, cv.MORPH_CLOSE, morphKernel);
 
                 let clean_mask_g = new cv.Mat();
-                cv.morphologyEx(mask_g, clean_mask_g, cv.MORPH_OPEN, kernel);
-                cv.morphologyEx(clean_mask_g, clean_mask_g, cv.MORPH_CLOSE, kernel);
+                cv.morphologyEx(mask_g, clean_mask_g, cv.MORPH_OPEN, morphKernel);
+                cv.morphologyEx(clean_mask_g, clean_mask_g, cv.MORPH_CLOSE, morphKernel);
 
                 function findDots(cleanMask, colorChar) {
                     let contours = new cv.MatVector();
@@ -441,7 +441,7 @@
                 src.delete(); hsv.delete(); mask_r1.delete(); mask_r2.delete(); mask_r.delete();
                 mask_b.delete(); mask_g.delete(); lower_red1.delete(); upper_red1.delete();
                 lower_red2.delete(); upper_red2.delete(); lower_blue.delete(); upper_blue.delete();
-                lower_green.delete(); upper_green.delete(); kernel.delete();
+                lower_green.delete(); upper_green.delete(); morphKernel.delete();
                 clean_mask_r.delete(); clean_mask_b.delete(); clean_mask_g.delete();
 
                 if (allDots.length > 0) {
