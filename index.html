@@ -414,6 +414,24 @@
                         columns.push(current_col);
                     }
 
+                    // Lọc bỏ các cột thuộc bảng khác (như Big Road) nằm bên phải bằng cách phát hiện khoảng trống lớn (gap)
+                    let filteredColumns = [];
+                    let maxGap = avgW * 2.2; // Khoảng cách tối đa giữa 2 cột hạt liền kề của Bead Plate
+                    for (let i = 0; i < columns.length; i++) {
+                        if (i === 0) {
+                            filteredColumns.push(columns[i]);
+                        } else {
+                            let colX = columns[i].reduce((sum, d) => sum + d.x, 0) / columns[i].length;
+                            let prevColX = columns[i-1].reduce((sum, d) => sum + d.x, 0) / columns[i-1].length;
+                            if (colX - prevColX > maxGap) {
+                                // Phát hiện khoảng cách lớn (đã chuyển sang Big Road hoặc bảng phụ), ngắt không lấy tiếp các cột sau
+                                break;
+                            }
+                            filteredColumns.push(columns[i]);
+                        }
+                    }
+                    columns = filteredColumns;
+
                     // Kiểm tra lưới hạt hợp lệ
                     let totalCols = columns.length;
                     if (allDots.length < 4) {
