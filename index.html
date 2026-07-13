@@ -416,7 +416,7 @@
 
                     // Lọc bỏ các cột thuộc bảng khác (như Big Road) nằm bên phải bằng cách phát hiện khoảng trống lớn (gap)
                     let filteredColumns = [];
-                    let maxGap = avgW * 2.2; // Khoảng cách tối đa giữa 2 cột hạt liền kề của Bead Plate
+                    let maxGap = avgW * 4.5; // Khoảng cách tối đa giữa 2 cột hạt liền kề của Bead Plate (tăng lên 4.5 để tránh đứt đoạn khi bỏ lỡ cột hạt)
                     for (let i = 0; i < columns.length; i++) {
                         if (i === 0) {
                             filteredColumns.push(columns[i]);
