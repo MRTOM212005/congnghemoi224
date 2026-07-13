@@ -481,25 +481,54 @@
                 return;
             }
 
-            let last3 = cleanHistory.slice(-3).join('');
-            let last4 = cleanHistory.slice(-4).join('');
+            // --- THUẬT TOÁN NHẬN DIỆN CẦU BACCARAT AI NÂNG CAO ---
+            let len = cleanHistory.length;
+            let last = cleanHistory[len - 1];
+            
+            // 1. Tính toán độ dài chuỗi bệt hiện tại
+            let streakLen = 0;
+            for (let i = len - 1; i >= 0; i--) {
+                if (cleanHistory[i] === last) {
+                    streakLen++;
+                } else {
+                    break;
+                }
+            }
 
             let pred = "";
             let percent = 50;
             let pattern = "PHÂN TÍCH NÂNG CAO";
 
-            if (last3 === "PPP") { pred = "P"; percent = 78; pattern = "Cầu bệt PLAYER"; }
-            else if (last3 === "BBB") { pred = "B"; percent = 78; pattern = "Cầu bệt BANKER"; }
-            else if (last3 === "PBP") { pred = "B"; percent = 70; pattern = "Cầu nhảy 1-1 (Banker)"; }
-            else if (last3 === "BPB") { pred = "P"; percent = 70; pattern = "Cầu nhảy 1-1 (Player)"; }
-            else if (last4 === "PPBB") { pred = "P"; percent = 68; pattern = "Cầu đôi 2-2 (Player)"; }
-            else if (last4 === "BBPP") { pred = "B"; percent = 68; pattern = "Cầu đôi 2-2 (Banker)"; }
-            else if (last3 === "PPB") { pred = "B"; percent = 65; pattern = "Cầu 2-1 (Banker)"; }
-            else if (last3 === "BBP") { pred = "P"; percent = 65; pattern = "Cầu 2-1 (Player)"; }
-            else {
-                pred = cleanHistory[cleanHistory.length-1] === 'P' ? 'B' : 'P';
-                percent = 55;
-                pattern = "Cầu ngắn - Đánh ngược";
+            // Nhận diện theo tầm nhìn thông minh
+            if (streakLen >= 3) {
+                pred = last; // Theo cầu bệt
+                percent = Math.min(75 + streakLen * 2, 92); // Càng bệt dài độ tin cậy càng cao
+                pattern = `Cầu bệt ${last === 'P' ? 'PLAYER' : 'BANKER'} (${streakLen} tay)`;
+            } else if (streakLen === 2) {
+                // Kiểm tra cầu 2-2: ..., B, B, P, P
+                if (len >= 4 && cleanHistory[len-3] !== last && cleanHistory[len-4] === cleanHistory[len-3]) {
+                    pred = last; // Đánh tiếp cho đủ cặp đôi
+                    percent = 72;
+                    pattern = `Cầu đôi 2-2 (${last === 'P' ? 'PLAYER' : 'BANKER'})`;
+                } else {
+                    // Cầu 2-1: ..., B, P, P -> đánh ngược
+                    pred = last === 'P' ? 'B' : 'P';
+                    percent = 68;
+                    pattern = `Cầu nhảy 2-1 (${pred === 'P' ? 'PLAYER' : 'BANKER'})`;
+                }
+            } else {
+                // streakLen === 1
+                // Kiểm tra cầu nhảy 1-1 (Ping-pong): ..., P, B, P
+                if (len >= 3 && cleanHistory[len-2] !== last && cleanHistory[len-3] === last) {
+                    pred = last === 'P' ? 'B' : 'P'; // Đánh nhảy tiếp
+                    percent = 75;
+                    pattern = `Cầu nhảy 1-1 (${pred === 'P' ? 'PLAYER' : 'BANKER'})`;
+                } else {
+                    // Cầu ngắn ngẫu nhiên -> Bám cầu thuận hoặc bẻ cầu nhẹ
+                    pred = last === 'P' ? 'B' : 'P';
+                    percent = 58;
+                    pattern = "Cầu ngắn - Đánh ngược";
+                }
             }
 
             if (pred === "B") {
