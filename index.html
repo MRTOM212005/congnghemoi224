@@ -300,18 +300,18 @@
 
                 document.getElementById('ai-status').innerText = "4/4: ĐANG TRÍCH XUẤT MA TRẬN MÀU...";
 
-                // Red (Mở rộng dải màu HSV nhạy hơn để chống lóa và bóng tối)
-                lower_red1 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [0, 80, 50, 0]);
-                upper_red1 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [10, 255, 255, 0]);
+                // Setup dải màu chuẩn (Mở rộng dải màu HSV nhạy hơn rất nhiều để chống lóa phản chiếu màn hình và bóng tối)
+                lower_red1 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [0, 45, 30, 0]);
+                upper_red1 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [15, 255, 255, 0]);
                 
-                lower_red2 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [170, 80, 50, 0]);
+                lower_red2 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [165, 45, 30, 0]);
                 upper_red2 = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [180, 255, 255, 0]);
 
-                lower_blue = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [90, 80, 50, 0]);
-                upper_blue = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [130, 255, 255, 0]);
+                lower_blue = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [85, 45, 30, 0]);
+                upper_blue = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [135, 255, 255, 0]);
 
-                lower_green = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [35, 60, 50, 0]);
-                upper_green = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [85, 255, 255, 0]);
+                lower_green = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [30, 35, 30, 0]);
+                upper_green = new cv.Mat(hsv.rows, hsv.cols, hsv.type(), [88, 255, 255, 0]);
 
                 mask_r1 = new cv.Mat();
                 cv.inRange(hsv, lower_red1, upper_red1, mask_r1);
